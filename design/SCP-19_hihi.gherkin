@@ -1,31 +1,18 @@
 Feature: Update database schema to include lastdate in employees table and categoryGroup in customers table
 
   Background:
-    Given the database schema is accessible
-    And the employees table exists
-    And the customers table exists
+    Given the database schema is up to date with the latest version
 
   Scenario: Add lastdate to employees table
-    Given I want to track the last date of employment for each employee
-    And lastdate should be of date type
-    And lastdate should have a default value of NULL
-    When I add the lastdate column to the employees table
-    Then the employees table should include a lastdate column
-    And the lastdate column should be of date type
-    And the lastdate column should have a default value of NULL
+    Given the purpose of adding "lastdate" is to track the last active date of an employee
+    And "lastdate" is defined as a date type with a default value of NULL
+    When the employees table is updated to include the "lastdate" column
+    Then the "lastdate" column should be successfully added to the employees table
+    And existing data in the employees table should remain unaffected
 
   Scenario: Add categoryGroup to customers table
-    Given I want to categorize customers into different groups
-    And categoryGroup should be of string type
-    And categoryGroup should have possible values "Standard", "Premium", "VIP"
-    When I add the categoryGroup column to the customers table
-    Then the customers table should include a categoryGroup column
-    And the categoryGroup column should be of string type
-    And the categoryGroup column should allow values "Standard", "Premium", "VIP"
-
-  Scenario: Ensure no impact on existing data
-    Given the employees table has existing data
-    And the customers table has existing data
-    When I add the lastdate and categoryGroup columns
-    Then the existing data in the employees table should remain unchanged
-    And the existing data in the customers table should remain unchanged
+    Given the purpose of adding "categoryGroup" is to categorize customers into different groups for marketing purposes
+    And "categoryGroup" is defined as a string type with possible values "Retail", "Wholesale", "VIP"
+    When the customers table is updated to include the "categoryGroup" column
+    Then the "categoryGroup" column should be successfully added to the customers table
+    And existing data in the customers table should remain unaffected
