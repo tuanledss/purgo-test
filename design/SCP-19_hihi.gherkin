@@ -6,13 +6,13 @@ Feature: Update database schema to include lastdate in employees table and categ
   Scenario: Add lastdate to employees table
     Given the purpose of adding "lastdate" is to track the last active date of an employee
     And "lastdate" is defined as a date type with a default value of NULL
-    When the employees table is updated to include the "lastdate" column
-    Then the "lastdate" column should be successfully added to the employees table
-    And existing data in the employees table should remain unaffected
+    When the employees table is updated
+    Then the employees table should include a "lastdate" column
+    And existing data should not be impacted by this addition
 
   Scenario: Add categoryGroup to customers table
-    Given the purpose of adding "categoryGroup" is to categorize customers into different groups for marketing purposes
+    Given the purpose of adding "categoryGroup" is to categorize customers into specific groups for marketing purposes
     And "categoryGroup" is defined as a string type with possible values "Retail", "Wholesale", "VIP"
-    When the customers table is updated to include the "categoryGroup" column
-    Then the "categoryGroup" column should be successfully added to the customers table
-    And existing data in the customers table should remain unaffected
+    When the customers table is updated
+    Then the customers table should include a "categoryGroup" column
+    And existing data should not be impacted by this addition
