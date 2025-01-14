@@ -23,12 +23,11 @@ alcohol = np.random.uniform(8, 14, n_records)
 # Generate quality scores
 quality = np.random.randint(3, 9, n_records)
 
-# Convert quality to binary high_quality
-# Assuming quality >= 6 is high quality
-high_quality = (quality >= 6).astype(int)  # Validate binary conversion condition
+# Convert quality to binary 'high_quality' based on a threshold (e.g., quality >= 6)
+high_quality = (quality >= 6).astype(int)  # Condition: Convert 'quality' to 'high_quality'
 
-# Create DataFrame
-data = pd.DataFrame({
+# Create a DataFrame
+wine_data = pd.DataFrame({
     'fixed_acidity': fixed_acidity,
     'volatile_acidity': volatile_acidity,
     'citric_acid': citric_acid,
@@ -44,11 +43,11 @@ data = pd.DataFrame({
     'high_quality': high_quality
 })
 
-# Split data into training, validation, and test sets
-train_data = data.sample(frac=0.7, random_state=42)  # Validate data splitting condition
-remaining_data = data.drop(train_data.index)
-validation_data = remaining_data.sample(frac=0.5, random_state=42)
-test_data = remaining_data.drop(validation_data.index)
+# Split the data into training, validation, and test sets
+train_data = wine_data.sample(frac=0.7, random_state=42)  # Condition: Split data into training set
+remaining_data = wine_data.drop(train_data.index)
+validation_data = remaining_data.sample(frac=0.5, random_state=42)  # Condition: Split data into validation set
+test_data = remaining_data.drop(validation_data.index)  # Condition: Split data into test set
 
 # Output the generated data
 print("Training Data:")
