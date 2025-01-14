@@ -1,18 +1,31 @@
-Feature: Update database schema to include new fields
+Feature: Update Database Schema
 
   Background:
-    Given a database with existing "employees" and "customers" tables
+    Given the current database schema includes an "employees" table
+    And the current database schema includes a "customers" table
 
-  Scenario: Add "lastdate" to the employees table
+  Scenario: Add "lastdate" to employees table
     Given the purpose of adding "lastdate" is to track the last active date of an employee
-    And "lastdate" is defined as a date type with a default value of NULL
-    When the "lastdate" column is added to the "employees" table
-    Then the "employees" table should include the "lastdate" column
-    And existing data in the "employees" table should remain unaffected
+    And the "lastdate" field should be of data type DATE
+    When the "lastdate" field is added to the "employees" table
+    Then the "employees" table should include a "lastdate" field
+    And existing employee records should have a default "lastdate" value of NULL
 
-  Scenario: Add "categoryGroup" to the customers table
+  Scenario: Add "categoryGroup" to customers table
     Given the purpose of adding "categoryGroup" is to categorize customers into groups
-    And "categoryGroup" is defined as a string type with possible values "Retail", "Wholesale", "VIP"
-    When the "categoryGroup" column is added to the "customers" table
-    Then the "customers" table should include the "categoryGroup" column
-    And existing data in the "customers" table should remain unaffected
+    And the "categoryGroup" field should be of data type VARCHAR(50)
+    And possible values for "categoryGroup" include "Retail", "Wholesale", "Online"
+    When the "categoryGroup" field is added to the "customers" table
+    Then the "customers" table should include a "categoryGroup" field
+    And existing customer records should have a default "categoryGroup" value of "Retail"
+
+  Scenario: Handle dependencies and constraints
+    Given there are no foreign key constraints related to "lastdate" or "categoryGroup"
+    When the schema is updated
+    Then there should be no impact on existing database relationships
+
+  Scenario: Impact on existing data
+    Given the schema update should not affect existing data integrity
+    When the "lastdate" and "categoryGroup" fields are added
+    Then existing data should remain intact
+    And new fields should be correctly initialized
