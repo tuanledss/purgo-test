@@ -1,4 +1,4 @@
-Feature: Wine Quality Classification Pipeline
+Feature: Machine Learning Pipeline for Wine Quality Classification
 
   Background:
     Given the white wine quality dataset is available in Databricks
@@ -10,21 +10,21 @@ Feature: Wine Quality Classification Pipeline
 
   Scenario: Train the model
     Given the training dataset is prepared
-    When a Random Forest algorithm is applied
-    Then a classification model should be trained on the training set
+    When the Random Forest algorithm is applied
+    Then a classification model should be trained
 
   Scenario: Validate and test the model
-    Given the trained model is available
+    Given the trained model
     When the model is evaluated on the validation dataset
-    Then the model's accuracy should be calculated
+    Then the accuracy should be calculated
     And the model should be evaluated on the test dataset
-    Then the model must achieve at least 80% accuracy on the test dataset
+    Then the model must achieve at least 80% accuracy
 
   Scenario: Track experiments
     Given MLflow is set up
     When the model parameters and performance metrics are logged
-    Then the trained model should be saved in MLflow
-    And all experiments should be documented and accessible in MLflow with clear metrics
+    Then the trained model should be saved
+    And all experiments should be documented and accessible in MLflow
 
   Scenario: Deliverable
     Given the pipeline is complete
