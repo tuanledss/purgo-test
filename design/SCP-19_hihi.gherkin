@@ -6,13 +6,13 @@ Feature: Update database schema to include new fields
   Scenario: Add "lastdate" to employees table
     Given the purpose of adding "lastdate" is to track the last active date of an employee
     And "lastdate" is defined as a date type with a default value of NULL
-    When the "lastdate" column is added to the "employees" table
-    Then the "employees" table should include the "lastdate" column
+    When the "lastdate" field is added to the "employees" table
+    Then the "employees" table should include the "lastdate" field
     And existing data in the "employees" table should remain unaffected
 
   Scenario: Add "categoryGroup" to customers table
     Given the purpose of adding "categoryGroup" is to categorize customers into groups
-    And "categoryGroup" is defined as a string type with possible values "Retail", "Wholesale", "Corporate"
-    When the "categoryGroup" column is added to the "customers" table
-    Then the "customers" table should include the "categoryGroup" column
+    And "categoryGroup" is defined as a string type with possible values "Retail", "Wholesale", "VIP"
+    When the "categoryGroup" field is added to the "customers" table
+    Then the "customers" table should include the "categoryGroup" field
     And existing data in the "customers" table should remain unaffected
