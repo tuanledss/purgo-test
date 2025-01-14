@@ -16,8 +16,8 @@ chlorides = np.random.uniform(0.01, 0.1, n_records)
 free_sulfur_dioxide = np.random.uniform(5, 50, n_records)
 total_sulfur_dioxide = np.random.uniform(20, 150, n_records)
 density = np.random.uniform(0.990, 1.000, n_records)
-pH = np.random.uniform(2.8, 3.8, n_records)
-sulphates = np.random.uniform(0.4, 1.2, n_records)
+pH = np.random.uniform(2.8, 3.5, n_records)
+sulphates = np.random.uniform(0.4, 1.0, n_records)
 alcohol = np.random.uniform(8, 14, n_records)
 
 # Generate quality scores
@@ -28,7 +28,7 @@ quality = np.random.randint(3, 9, n_records)
 high_quality = (quality >= 6).astype(int)  # Validate binary conversion condition
 
 # Create DataFrame
-wine_data = pd.DataFrame({
+data = pd.DataFrame({
     'fixed_acidity': fixed_acidity,
     'volatile_acidity': volatile_acidity,
     'citric_acid': citric_acid,
@@ -45,8 +45,8 @@ wine_data = pd.DataFrame({
 })
 
 # Split data into training, validation, and test sets
-train_data = wine_data.sample(frac=0.7, random_state=42)  # Validate data splitting condition
-remaining_data = wine_data.drop(train_data.index)
+train_data = data.sample(frac=0.7, random_state=42)  # Validate data splitting condition
+remaining_data = data.drop(train_data.index)
 validation_data = remaining_data.sample(frac=0.5, random_state=42)
 test_data = remaining_data.drop(validation_data.index)
 
