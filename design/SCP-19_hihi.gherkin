@@ -1,35 +1,11 @@
-Feature: Jira Forge App Development
+Feature: Calculate Average Age from New Zealand Period Life Tables
 
-  Background:
-    Given a Jira environment
-    And a development team with Forge app development expertise
-
-  Scenario: Define app functionality
-    Given the need for specific functionality in the Jira Forge app
-    When the development team gathers requirements
-    Then the app should include features that meet user needs
-
-  Scenario: Identify target audience
-    Given the target audience for the app
-    When the development team defines user roles
-    Then the app should cater to the needs of those user roles
-
-  Scenario: Ensure integration with existing tools
-    Given existing Jira tools and third-party applications
-    When the development team plans integration
-    Then the app should seamlessly integrate with these tools
-
-  Scenario: Meet performance expectations
-    Given performance and scalability expectations
-    When the development team designs the app
-    Then the app should perform efficiently under expected load
-
-  Scenario: Address security and compliance
-    Given security and compliance requirements
-    When the development team implements the app
-    Then the app should adhere to all necessary security and compliance standards
-
-  Scenario: Adhere to development timeline
-    Given a timeline for app development and deployment
-    When the development team schedules tasks
-    Then the app should be developed and deployed within the deadline
+  Scenario: Calculate average age from the dataset
+    Given the dataset "new_zealand_period_life_tables_2017_2019_csv" is available in the Unity catalog at "/purgo_test/playground/new_zealand_period_life_tables_2017_2019_csv"
+    And the column "age" is defined as the age data in the dataset
+    And no filters or conditions are applied to the dataset before calculation
+    And missing or null values in the age data are ignored
+    And the average age result should be formatted to two decimal places
+    And the calculation should consider all records in the dataset
+    When I create a Databricks SQL query to calculate the average age
+    Then the query should correctly calculate and return the average age from the dataset
