@@ -67,7 +67,3 @@ with mlflow.start_run():
     mlflow.log_metric("validation_accuracy", val_accuracy)
     mlflow.log_metric("test_accuracy", test_accuracy)
     mlflow.sklearn.log_model(model, "model")
-
-# Output results
-print(f"Validation Accuracy: {val_accuracy}")
-print(f"Test Accuracy: {test_accuracy}")
