@@ -1,18 +1,20 @@
-Feature: Update database schema to include lastdate in employees table and categoryGroup in customers table
+Feature: Update database schema to include new fields
 
   Background:
-    Given a database with existing employees and customers tables
+    Given the database schema is accessible
+    And the employees table exists
+    And the customers table exists
 
-  Scenario: Add lastdate to employees table
-    Given the purpose of adding "lastdate" is to track the last date an employee was active
+  Scenario: Add "lastdate" to employees table
+    Given I want to track the last date of an event for employees
     And "lastdate" is defined as a date type with a default value of NULL
-    When the "lastdate" column is added to the employees table
-    Then the employees table should include a "lastdate" column
+    When I add the "lastdate" column to the employees table
+    Then the employees table should include the "lastdate" column
     And existing data in the employees table should remain unaffected
 
-  Scenario: Add categoryGroup to customers table
-    Given the purpose of adding "categoryGroup" is to categorize customers into different groups
-    And "categoryGroup" is defined as a string type with possible values "Retail", "Wholesale", "VIP"
-    When the "categoryGroup" column is added to the customers table
-    Then the customers table should include a "categoryGroup" column
+  Scenario: Add "categoryGroup" to customers table
+    Given I want to categorize customers into groups
+    And "categoryGroup" is defined as a string type with possible values "A", "B", "C"
+    When I add the "categoryGroup" column to the customers table
+    Then the customers table should include the "categoryGroup" column
     And existing data in the customers table should remain unaffected
