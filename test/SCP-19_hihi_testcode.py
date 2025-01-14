@@ -8,20 +8,21 @@ class TestWineQualityPipeline(unittest.TestCase):
 
     def setUp(self):
         # Load the synthetic data
-        self.wine_data = wine_data
+        self.data = data
         self.train_data = train_data
         self.validation_data = validation_data
         self.test_data = test_data
 
     def test_data_splitting(self):
         # Validate data splitting
-        self.assertEqual(len(self.train_data) + len(self.validation_data) + len(self.test_data), len(self.wine_data))
-        self.assertTrue(len(self.train_data) > len(self.validation_data))
-        self.assertTrue(len(self.train_data) > len(self.test_data))
+        self.assertEqual(len(self.train_data) + len(self.validation_data) + len(self.test_data), len(self.data))
+        self.assertTrue(set(self.train_data.index).isdisjoint(set(self.validation_data.index)))
+        self.assertTrue(set(self.train_data.index).isdisjoint(set(self.test_data.index)))
+        self.assertTrue(set(self.validation_data.index).isdisjoint(set(self.test_data.index)))
 
     def test_label_conversion(self):
         # Validate binary conversion of 'quality' to 'high_quality'
-        self.assertTrue(all(self.wine_data['high_quality'] == (self.wine_data['quality'] >= 6).astype(int)))
+        self.assertTrue(all(self.data['high_quality'] == (self.data['quality'] >= 6).astype(int)))
 
     def test_model_training_and_accuracy(self):
         # Train Random Forest model
@@ -52,19 +53,14 @@ class TestWineQualityPipeline(unittest.TestCase):
         mlflow.set_experiment("Wine Quality Classification")
         with mlflow.start_run():
             # Log model parameters and metrics
-            mlflow.log_param("random_state", 42)
-            mlflow.log_metric("validation_accuracy", val_accuracy)
-            mlflow.log_metric("test_accuracy", test_accuracy)
+            model = RandomForestClassifier(random_state=42)
+            model.fit(self.train_data.drop(columns=['quality', 'high_quality']), self.train_data['high_quality'])
             mlflow.sklearn.log_model(model, "model")
+            mlflow.log_metric("test_accuracy", accuracy_score(self.test_data['high_quality'], model.predict(self.test_data.drop(columns=['quality', 'high_quality']))))
 
             # Validate MLflow logging
             run_id = mlflow.active_run().info.run_id
             self.assertIsNotNone(run_id)
-
-    def test_pipeline_documentation(self):
-        # Check if the pipeline is well-documented
-        # This is a placeholder for actual documentation checks
-        self.assertTrue(True)
 
 if __name__ == '__main__':
     unittest.main()
