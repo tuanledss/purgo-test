@@ -12,7 +12,7 @@ Feature: Update database schema to include new fields
 
   Scenario: Add "categoryGroup" to customers table
     Given the purpose of adding "categoryGroup" is to categorize customers into groups
-    And "categoryGroup" is defined as a string type with possible values "Retail", "Wholesale", "VIP"
+    And "categoryGroup" is defined as a string type with possible values "Retail", "Wholesale", "Corporate"
     When the "categoryGroup" column is added to the "customers" table
     Then the "customers" table should include the "categoryGroup" column
     And existing data in the "customers" table should remain unaffected
