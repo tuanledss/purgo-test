@@ -1,7 +1,7 @@
 Feature: Update database schema to include new fields
 
   Background:
-    Given a database with existing "employees" and "customers" tables
+    Given a database with "employees" and "customers" tables
 
   Scenario: Add "lastdate" to employees table
     Given the purpose of adding "lastdate" is to track the last active date of an employee
