@@ -1,18 +1,18 @@
-Feature: Update Database Schema
+Feature: Update database schema to include new fields
 
   Background:
-    Given the database schema needs to be updated to include new fields
+    Given a database with existing "employees" and "customers" tables
 
-  Scenario: Add "lastdate" to employees table
-    Given the purpose of adding "lastdate" is to track the last date an employee was active
+  Scenario: Add "lastdate" to the employees table
+    Given the purpose of adding "lastdate" is to track the last active date of an employee
     And "lastdate" is defined as a date type with a default value of NULL
-    When the "lastdate" field is added to the employees table
-    Then the employees table should include the "lastdate" field
-    And existing data in the employees table should remain unaffected
+    When the "lastdate" column is added to the "employees" table
+    Then the "employees" table should include the "lastdate" column
+    And existing data in the "employees" table should remain unaffected
 
-  Scenario: Add "categoryGroup" to customers table
+  Scenario: Add "categoryGroup" to the customers table
     Given the purpose of adding "categoryGroup" is to categorize customers into groups
     And "categoryGroup" is defined as a string type with possible values "Retail", "Wholesale", "VIP"
-    When the "categoryGroup" field is added to the customers table
-    Then the customers table should include the "categoryGroup" field
-    And existing data in the customers table should remain unaffected
+    When the "categoryGroup" column is added to the "customers" table
+    Then the "customers" table should include the "categoryGroup" column
+    And existing data in the "customers" table should remain unaffected
