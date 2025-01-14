@@ -1,11 +1,31 @@
-Feature: Calculate Average Age from New Zealand Period Life Tables
+Feature: Update database schema to include lastdate in employees table and categoryGroup in customers table
 
-  Scenario: Calculate average age from the dataset
-    Given the dataset "new_zealand_period_life_tables_2017_2019_csv" is available in the Unity catalog at "/purgo_test/playground/new_zealand_period_life_tables_2017_2019_csv"
-    And the column "age" is defined as the age data in the dataset
-    And no filters or conditions are applied to the dataset before calculation
-    And missing or null values in the age data are ignored
-    And the average age result should be formatted to two decimal places
-    And the calculation should consider all records in the dataset
-    When I create a Databricks SQL query to calculate the average age
-    Then the query should correctly calculate and return the average age from the dataset
+  Background:
+    Given the database schema is accessible
+    And the employees table exists
+    And the customers table exists
+
+  Scenario: Add lastdate to employees table
+    Given I want to track the last date of employment for each employee
+    And lastdate should be of date type
+    And lastdate should have a default value of NULL
+    When I add the lastdate column to the employees table
+    Then the employees table should include a lastdate column
+    And the lastdate column should be of date type
+    And the lastdate column should have a default value of NULL
+
+  Scenario: Add categoryGroup to customers table
+    Given I want to categorize customers into different groups
+    And categoryGroup should be of string type
+    And categoryGroup should have possible values "Standard", "Premium", "VIP"
+    When I add the categoryGroup column to the customers table
+    Then the customers table should include a categoryGroup column
+    And the categoryGroup column should be of string type
+    And the categoryGroup column should allow values "Standard", "Premium", "VIP"
+
+  Scenario: Ensure no impact on existing data
+    Given the employees table has existing data
+    And the customers table has existing data
+    When I add the lastdate and categoryGroup columns
+    Then the existing data in the employees table should remain unchanged
+    And the existing data in the customers table should remain unchanged
