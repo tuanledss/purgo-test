@@ -17,17 +17,16 @@ Feature: Wine Quality Classification Pipeline
     Given the trained model
     When the model is evaluated on the validation dataset
     Then the accuracy should be calculated
-    When the model is evaluated on the test dataset
+    And the model should be evaluated on the test dataset
     Then the accuracy should be at least 80%
 
   Scenario: Track experiments
     Given MLflow is set up
     When the model parameters and performance metrics are logged
-    Then the trained model should be saved
-    And all experiments should be documented and accessible in MLflow
+    Then the trained model should be saved in MLflow
+    And all experiments should be documented and accessible
 
   Scenario: Deliverable
     Given the pipeline is complete
     When the model is registered in MLflow
-    Then the pipeline should be well-organized and documented
-    And it should be ready for integration with other systems
+    Then the pipeline should be documented and ready for integration
