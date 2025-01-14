@@ -1,31 +1,33 @@
-Feature: Update Database Schema
+Feature: Wine Quality Classification Pipeline
 
   Background:
-    Given the current database schema includes an "employees" table
-    And the current database schema includes a "customers" table
+    Given the white wine quality dataset is available in Databricks
 
-  Scenario: Add "lastdate" to employees table
-    Given the purpose of adding "lastdate" is to track the last active date of an employee
-    And the "lastdate" field should be of data type DATE
-    When the "lastdate" field is added to the "employees" table
-    Then the "employees" table should include a "lastdate" field
-    And existing employee records should have a default "lastdate" value of NULL
+  Scenario: Load and preprocess data
+    When the dataset is loaded
+    Then it should be split into training, validation, and test sets
+    And the 'quality' label should be converted into a binary variable 'high_quality'
 
-  Scenario: Add "categoryGroup" to customers table
-    Given the purpose of adding "categoryGroup" is to categorize customers into groups
-    And the "categoryGroup" field should be of data type VARCHAR(50)
-    And possible values for "categoryGroup" include "Retail", "Wholesale", "Online"
-    When the "categoryGroup" field is added to the "customers" table
-    Then the "customers" table should include a "categoryGroup" field
-    And existing customer records should have a default "categoryGroup" value of "Retail"
+  Scenario: Train the model
+    Given the training set is prepared
+    When the Random Forest algorithm is applied
+    Then a classification model should be trained
 
-  Scenario: Handle dependencies and constraints
-    Given there are no foreign key constraints related to "lastdate" or "categoryGroup"
-    When the schema is updated
-    Then there should be no impact on existing database relationships
+  Scenario: Validate and test the model
+    Given the trained model
+    When the model is evaluated on the validation dataset
+    Then the accuracy should be calculated
+    When the model is evaluated on the test dataset
+    Then the accuracy should be at least 80%
 
-  Scenario: Impact on existing data
-    Given the schema update should not affect existing data integrity
-    When the "lastdate" and "categoryGroup" fields are added
-    Then existing data should remain intact
-    And new fields should be correctly initialized
+  Scenario: Track experiments
+    Given MLflow is set up
+    When the model parameters and performance metrics are logged
+    Then the trained model should be saved
+    And all experiments should be documented and accessible in MLflow
+
+  Scenario: Deliverable
+    Given the pipeline is complete
+    When the model is registered in MLflow
+    Then the pipeline should be well-organized and documented
+    And it should be ready for integration with other systems
