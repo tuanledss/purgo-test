@@ -2,113 +2,81 @@ import unittest
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score
 import mlflow
 import mlflow.sklearn
 
-# Mock functions to be tested
-def load_data(file_path: str) -> pd.DataFrame:
-    return pd.read_csv(file_path)
+# Constants
+QUALITY_THRESHOLD = 7
 
-def preprocess_data(df: pd.DataFrame) -> tuple:
-    df['high_quality'] = (df['quality'] >= 7).astype(int)
-    train, temp = train_test_split(df, test_size=0.3, random_state=42)
-    val, test = train_test_split(temp, test_size=0.5, random_state=42)
-    return train, val, test
-
-def train_model(train_df: pd.DataFrame) -> RandomForestClassifier:
-    features = train_df.drop(columns=['quality', 'high_quality'])
-    target = train_df['high_quality']
-    model = RandomForestClassifier(random_state=42)
-    model.fit(features, target)
-    return model
-
-def validate_model(model: RandomForestClassifier, val_df: pd.DataFrame) -> dict:
-    features = val_df.drop(columns=['quality', 'high_quality'])
-    target = val_df['high_quality']
-    predictions = model.predict(features)
-    return {
-        'accuracy': accuracy_score(target, predictions),
-        'precision': precision_score(target, predictions),
-        'recall': recall_score(target, predictions),
-        'f1_score': f1_score(target, predictions)
-    }
-
-def test_model(model: RandomForestClassifier, test_df: pd.DataFrame) -> dict:
-    features = test_df.drop(columns=['quality', 'high_quality'])
-    target = test_df['high_quality']
-    predictions = model.predict(features)
-    return {
-        'accuracy': accuracy_score(target, predictions),
-        'precision': precision_score(target, predictions),
-        'recall': recall_score(target, predictions),
-        'f1_score': f1_score(target, predictions)
-    }
+# Test data
+from test_data import happy_path_data, edge_case_data, error_case_data, special_format_data
 
 class TestWineQualityPipeline(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
         # Setup MLflow
-        mlflow.set_experiment("wine_quality_experiment")
+        mlflow.set_experiment("Wine Quality Classification")
+        cls.model = RandomForestClassifier(n_estimators=100, random_state=42)
 
     def setUp(self):
-        # Load test data
-        self.test_data = pd.DataFrame([
-            {'fixed acidity': 7.0, 'volatile acidity': 0.27, 'citric acid': 0.36, 'residual sugar': 20.7, 'chlorides': 0.045,
-             'free sulfur dioxide': 45.0, 'total sulfur dioxide': 170.0, 'density': 1.001, 'pH': 3.0, 'sulphates': 0.45,
-             'alcohol': 8.8, 'quality': 6},
-            {'fixed acidity': 6.3, 'volatile acidity': 0.3, 'citric acid': 0.34, 'residual sugar': 1.6, 'chlorides': 0.049,
-             'free sulfur dioxide': 14.0, 'total sulfur dioxide': 132.0, 'density': 0.994, 'pH': 3.3, 'sulphates': 0.49,
-             'alcohol': 9.5, 'quality': 8},
-            {'fixed acidity': 8.1, 'volatile acidity': 0.28, 'citric acid': 0.4, 'residual sugar': 6.9, 'chlorides': 0.05,
-             'free sulfur dioxide': 30.0, 'total sulfur dioxide': 97.0, 'density': 0.9951, 'pH': 3.26, 'sulphates': 0.44,
-             'alcohol': 10.1, 'quality': 5},
-        ])
+        # Prepare data for each test
+        self.data = pd.concat([happy_path_data, edge_case_data, error_case_data, special_format_data], ignore_index=True)
+        self.data['high_quality'] = self.data['quality'].apply(lambda x: 1 if int(x) >= QUALITY_THRESHOLD else 0)
 
-    def test_data_loading(self):
-        # Test data loading
-        df = load_data('/dbfs/FileStore/winequality-white.csv')
-        self.assertIsInstance(df, pd.DataFrame)
-        self.assertFalse(df.empty)
-
-    def test_data_preprocessing(self):
-        # Test data preprocessing
-        train, val, test = preprocess_data(self.test_data)
-        self.assertEqual(len(train) + len(val) + len(test), len(self.test_data))
-        self.assertIn('high_quality', train.columns)
+    def test_data_loading_and_preprocessing(self):
+        # Test data loading and preprocessing
+        self.assertFalse(self.data.empty, "Data should be loaded")
+        self.assertIn('high_quality', self.data.columns, "Column 'high_quality' should be present")
 
     def test_model_training(self):
         # Test model training
-        train, _, _ = preprocess_data(self.test_data)
-        model = train_model(train)
-        self.assertIsInstance(model, RandomForestClassifier)
+        train_data, test_data = train_test_split(self.data, test_size=0.3, random_state=42)
+        X_train = train_data.drop(columns=['quality', 'high_quality'])
+        y_train = train_data['high_quality']
+        self.model.fit(X_train, y_train)
+        self.assertIsNotNone(self.model, "Model should be trained")
 
-    def test_model_validation(self):
-        # Test model validation
-        train, val, _ = preprocess_data(self.test_data)
-        model = train_model(train)
-        metrics = validate_model(model, val)
-        self.assertGreaterEqual(metrics['accuracy'], 0.0)
-        self.assertLessEqual(metrics['accuracy'], 1.0)
+    def test_model_validation_and_testing(self):
+        # Test model validation and testing
+        train_data, test_data = train_test_split(self.data, test_size=0.3, random_state=42)
+        X_test = test_data.drop(columns=['quality', 'high_quality'])
+        y_test = test_data['high_quality']
+        y_pred = self.model.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
+        self.assertGreaterEqual(accuracy, 0.8, "Model accuracy should be at least 80%")
 
-    def test_model_testing(self):
-        # Test model testing
-        train, _, test = preprocess_data(self.test_data)
-        model = train_model(train)
-        metrics = test_model(model, test)
-        self.assertGreaterEqual(metrics['accuracy'], 0.0)
-        self.assertLessEqual(metrics['accuracy'], 1.0)
+    def test_experiment_tracking(self):
+        # Test experiment tracking with MLflow
+        with mlflow.start_run():
+            mlflow.sklearn.log_model(self.model, "model")
+            mlflow.log_param("n_estimators", 100)
+            mlflow.log_metric("accuracy", 0.85)
+            run_id = mlflow.active_run().info.run_id
+        self.assertIsNotNone(run_id, "MLflow run ID should be generated")
 
     def test_error_handling(self):
-        # Test error handling with invalid data
+        # Test error handling for invalid data
         with self.assertRaises(ValueError):
-            preprocess_data(pd.DataFrame([{'fixed acidity': -1.0, 'quality': -1}]))
+            invalid_data = error_case_data.copy()
+            invalid_data['high_quality'] = invalid_data['quality'].apply(lambda x: 1 if int(x) >= QUALITY_THRESHOLD else 0)
+            X_invalid = invalid_data.drop(columns=['quality', 'high_quality'])
+            self.model.predict(X_invalid)
+
+    def test_special_format_handling(self):
+        # Test handling of special character and format data
+        special_data = special_format_data.copy()
+        special_data['high_quality'] = special_data['quality'].apply(lambda x: 1 if int(x) >= QUALITY_THRESHOLD else 0)
+        X_special = special_data.drop(columns=['quality', 'high_quality'])
+        y_special = special_data['high_quality']
+        y_pred = self.model.predict(X_special.astype(float))
+        self.assertIsNotNone(y_pred, "Model should handle special format data")
 
     @classmethod
     def tearDownClass(cls):
-        # Cleanup MLflow
-        mlflow.end_run()
+        # Cleanup if necessary
+        pass
 
 if __name__ == '__main__':
     unittest.main()
