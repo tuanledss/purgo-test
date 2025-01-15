@@ -1,68 +1,88 @@
 import random
 import string
 import json
-import re
 
 # Helper functions
-def random_string(length=8):
+def random_string(length=10):
     return ''.join(random.choices(string.ascii_letters, k=length))
 
 def random_email():
-    return f"{random_string()}@example.com"
+    return f"{random_string(5)}@{random_string(3)}.com"
 
-def random_role():
-    return random.choice(['admin', 'user', 'guest'])
+def random_phone():
+    return f"+1{random.randint(1000000000, 9999999999)}"
 
-def is_valid_email(email):
-    return re.match(r"[^@]+@[^@]+\.[^@]+", email) is not None
-
-# Test Data Categories
-
-# Happy path test data (valid, expected scenarios)
+# Happy Path Test Data
+# Valid user data with expected scenarios
 happy_path_data = [
-    # Valid user data
-    {"userId": "user123", "name": "John Doe", "email": "john.doe@example.com", "role": "admin"},
-    {"userId": "user456", "name": "Jane Smith", "email": "jane.smith@example.com", "role": "user"},
-    {"userId": "user789", "name": "Alice Johnson", "email": "alice.j@example.com", "role": "guest"},
+    {
+        "userId": 1,
+        "name": "John Doe",
+        "email": "john.doe@example.com",
+        "phoneNumber": "+12345678901"
+    },
+    {
+        "userId": 2,
+        "name": "Jane Smith",
+        "email": "jane.smith@example.com",
+        "phoneNumber": "+19876543210"
+    }
 ]
 
-# Edge case test data (boundary conditions)
+# Edge Case Test Data
+# Boundary conditions for userId and phoneNumber
 edge_case_data = [
-    # Minimum length userId
-    {"userId": "u", "name": "Min User", "email": "min.user@example.com", "role": "user"},
-    # Maximum length userId
-    {"userId": random_string(255), "name": "Max User", "email": "max.user@example.com", "role": "admin"},
-    # Valid email with subdomain
-    {"userId": "userSub", "name": "Subdomain User", "email": "user@sub.example.com", "role": "guest"},
+    {
+        "userId": 0,  # Minimum boundary for userId
+        "name": "Edge Case User",
+        "email": "edge.case@example.com",
+        "phoneNumber": "+10000000000"  # Minimum valid phone number
+    },
+    {
+        "userId": 2147483647,  # Maximum boundary for userId (assuming 32-bit integer)
+        "name": "Max Int User",
+        "email": "max.int@example.com",
+        "phoneNumber": "+19999999999"  # Maximum valid phone number
+    }
 ]
 
-# Error case test data (invalid inputs)
+# Error Case Test Data
+# Invalid inputs for email and phoneNumber
 error_case_data = [
-    # Empty userId
-    {"userId": "", "name": "Empty UserId", "email": "empty.userid@example.com", "role": "user"},
-    # Invalid email format
-    {"userId": "invalidEmail", "name": "Invalid Email", "email": "invalid-email", "role": "admin"},
-    # Unsupported role
-    {"userId": "unsupportedRole", "name": "Unsupported Role", "email": "unsupported.role@example.com", "role": "superuser"},
+    {
+        "userId": 3,
+        "name": "Invalid Email User",
+        "email": "invalid-email",  # Invalid email format
+        "phoneNumber": "+12345678901"
+    },
+    {
+        "userId": 4,
+        "name": "Invalid Phone User",
+        "email": "valid.email@example.com",
+        "phoneNumber": "1234567890"  # Invalid phone format (missing country code)
+    }
 ]
 
-# Special character and format test data
+# Special Character and Format Test Data
+# Testing special characters in name and email
 special_character_data = [
-    # UserId with special characters
-    {"userId": "user!@#", "name": "Special Char User", "email": "special.char@example.com", "role": "user"},
-    # Name with special characters
-    {"userId": "specialName", "name": "Name!@#", "email": "name.special@example.com", "role": "guest"},
-    # Email with special characters
-    {"userId": "specialEmail", "name": "Special Email", "email": "special.email+test@example.com", "role": "admin"},
+    {
+        "userId": 5,
+        "name": "Special!@#User",
+        "email": "special!@#user@example.com",
+        "phoneNumber": "+12345678901"
+    },
+    {
+        "userId": 6,
+        "name": "Normal User",
+        "email": "normal.user+test@example.com",  # Email with plus sign
+        "phoneNumber": "+12345678901"
+    }
 ]
 
 # Combine all test data
 all_test_data = happy_path_data + edge_case_data + error_case_data + special_character_data
 
-# Validate and print test data
-for data in all_test_data:
-    assert isinstance(data['userId'], str) and data['userId'], "Invalid userId"
-    assert isinstance(data['name'], str) and data['name'], "Invalid name"
-    assert is_valid_email(data['email']), "Invalid email format"
-    assert data['role'] in ['admin', 'user', 'guest'], "Invalid role"
-    print(json.dumps(data, indent=2))
+# Output the test data in JSON format
+print(json.dumps(all_test_data, indent=2))
+
