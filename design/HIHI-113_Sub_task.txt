@@ -1,68 +1,83 @@
 
 1. Component Architecture
 - **Major Components and Interactions:**
-  - **User Interface (UI):** A web-based front-end application that allows users to interact with the system. It communicates with the backend via RESTful APIs.
-  - **Backend Service:** A server-side application responsible for processing requests from the UI, performing business logic, and interacting with the database.
-  - **Database:** A relational database (e.g., PostgreSQL) that stores all persistent data.
-  - **Authentication Service:** An external service (e.g., OAuth 2.0 provider) for user authentication and authorization.
-  - **Notification Service:** An external service (e.g., AWS SNS) for sending notifications to users.
+  - **User Interface (UI):** A web-based interface for user interaction, built using React.js. It communicates with the backend via RESTful APIs.
+  - **Backend Service:** A Node.js application that handles business logic, data processing, and communication with the database.
+  - **Database:** A PostgreSQL database for persistent data storage.
+  - **Authentication Service:** An external OAuth 2.0 service for user authentication.
+  - **Notification Service:** An external service for sending email and SMS notifications.
 
 - **Input/Output Interfaces:**
-  - **UI to Backend:** JSON over HTTP for all API requests and responses.
+  - **UI to Backend:** HTTP requests (GET, POST, PUT, DELETE) with JSON payloads.
   - **Backend to Database:** SQL queries for data retrieval and manipulation.
-  - **Backend to Authentication Service:** OAuth 2.0 protocol for user authentication.
-  - **Backend to Notification Service:** JSON payloads over HTTPS for sending notifications.
+  - **Backend to Authentication Service:** OAuth 2.0 token exchange.
+  - **Backend to Notification Service:** REST API calls with JSON payloads.
 
 - **Dependencies and External Systems:**
-  - **OAuth 2.0 Provider:** For user authentication.
-  - **AWS SNS:** For sending notifications.
-  - **PostgreSQL Database:** For data storage.
+  - **React.js** for UI development.
+  - **Node.js** and **Express.js** for backend development.
+  - **PostgreSQL** for database management.
+  - **OAuth 2.0** for authentication.
+  - **SendGrid** or similar for email notifications.
 
 2. Data Flow
 - **Data Transformation Steps:**
-  - **User Input Validation:** Validate user inputs on the UI before sending to the backend.
-  - **Data Processing:** Backend processes the data, applies business logic, and prepares it for storage or further actions.
+  - **User Input:** Data is collected from the UI and sent to the backend.
+  - **Data Validation:** Backend validates the data against predefined schemas.
+  - **Data Processing:** Business logic is applied to the validated data.
   - **Data Storage:** Processed data is stored in the database.
-  - **Notification Trigger:** Based on certain conditions, notifications are sent to users.
+  - **Notification Trigger:** If applicable, notifications are sent via the Notification Service.
 
 - **Data Formats and Schemas:**
-  - **API Requests/Responses:** JSON format with defined schemas for each endpoint.
-  - **Database Schema:** Tables with defined columns, data types, and constraints (e.g., `users`, `transactions`).
+  - **JSON** for data exchange between UI and backend.
+  - **SQL** for database interactions.
+  - **Example JSON Schema:**
+    
+    {
+      "type": "object",
+      "properties": {
+        "userId": {"type": "string"},
+        "email": {"type": "string", "format": "email"},
+        "message": {"type": "string"}
+      },
+      "required": ["userId", "email"]
+    }
+    
 
 - **Validation Rules and Error Handling:**
-  - **Input Validation:** Ensure all required fields are present and correctly formatted (e.g., email format, password strength).
-  - **Error Handling:** Return standardized error codes and messages for different failure scenarios (e.g., 400 for bad requests, 401 for unauthorized access).
+  - **Validation Rules:** Ensure all required fields are present and correctly formatted.
+  - **Error Handling:** Return HTTP 400 for validation errors, HTTP 500 for server errors, and log errors for monitoring.
 
 3. Implementation Steps
-- **Step 1: Set Up Development Environment**
-  - Install necessary tools and frameworks (e.g., Node.js, PostgreSQL).
-  - Acceptance Criteria: Development environment is fully operational.
+- **Step 1: UI Development**
+  - Implement the React.js components.
+  - Acceptance Criteria: UI components render correctly and handle user input.
 
-- **Step 2: Develop User Interface**
-  - Implement UI components and integrate with backend APIs.
-  - Acceptance Criteria: UI is functional and can communicate with the backend.
+- **Step 2: Backend API Development**
+  - Develop RESTful endpoints in Node.js.
+  - Acceptance Criteria: Endpoints return correct responses for valid and invalid requests.
 
-- **Step 3: Implement Backend Service**
-  - Develop RESTful APIs and integrate with the database.
-  - Acceptance Criteria: APIs are functional and pass all unit tests.
+- **Step 3: Database Schema Design**
+  - Create tables and relationships in PostgreSQL.
+  - Acceptance Criteria: Database schema supports all required data operations.
 
-- **Step 4: Integrate Authentication Service**
-  - Implement OAuth 2.0 flow for user authentication.
-  - Acceptance Criteria: Users can authenticate and access protected resources.
+- **Step 4: Integration with Authentication Service**
+  - Implement OAuth 2.0 flow.
+  - Acceptance Criteria: Users can authenticate and receive valid tokens.
 
-- **Step 5: Implement Notification Service**
-  - Integrate with AWS SNS to send notifications.
-  - Acceptance Criteria: Notifications are sent successfully based on triggers.
+- **Step 5: Notification Service Integration**
+  - Implement API calls to the Notification Service.
+  - Acceptance Criteria: Notifications are sent successfully upon triggering events.
 
 4. Technical Considerations
 - **Performance Requirements:**
-  - The system should handle up to 1000 concurrent users with a response time of less than 200ms for API requests.
+  - The system should handle up to 1000 concurrent users with response times under 200ms for API calls.
 
 - **Security Considerations:**
-  - Use HTTPS for all communications.
+  - Use HTTPS for all data transmissions.
   - Implement input sanitization to prevent SQL injection and XSS attacks.
-  - Store passwords using strong hashing algorithms (e.g., bcrypt).
+  - Store passwords securely using bcrypt hashing.
 
 - **Scalability Aspects:**
-  - Design the system to be horizontally scalable by using load balancers and stateless services.
+  - Design the system to be horizontally scalable by using load balancers.
   - Use database sharding or replication to handle increased data loads.
