@@ -1,109 +1,99 @@
-import uuid
 import random
+import string
 import json
+from datetime import datetime, timedelta
 
-# Helper function to generate a valid UUID
-def generate_valid_uuid():
-    return str(uuid.uuid4())
+# Helper functions
+def random_string(length=10):
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
-# Helper function to generate an invalid UUID
-def generate_invalid_uuid():
-    return "invalid-uuid"
+def random_email():
+    return f"{random_string(5)}@{random_string(3)}.com"
 
-# Helper function to generate a valid action
-def generate_valid_action():
-    return random.choice(["create", "update"])
+def random_date(start_year=2000, end_year=2023):
+    start_date = datetime(start_year, 1, 1)
+    end_date = datetime(end_year, 12, 31)
+    return start_date + (end_date - start_date) * random.random()
 
-# Helper function to generate an invalid action
-def generate_invalid_action():
-    return "delete"
+def random_password():
+    return ''.join(random.choices(string.ascii_letters + string.digits + string.punctuation, k=12))
 
-# Helper function to generate a valid positive integer
-def generate_valid_positive_integer():
-    return random.randint(1, 100)
-
-# Helper function to generate an invalid integer (negative)
-def generate_invalid_integer():
-    return random.randint(-100, -1)
-
-# Helper function to generate special character strings
-def generate_special_character_string():
-    return "!@#$%^&*()"
+# Test Data Categories
 
 # Happy path test data (valid, expected scenarios)
 happy_path_data = [
-    # Valid userId, action, and positive integer
+    # Valid user data
     {
-        "userId": generate_valid_uuid(),
-        "action": generate_valid_action(),
-        "data": {
-            "field1": "ValidString",
-            "field2": generate_valid_positive_integer()
-        }
+        "username": "validUser1",
+        "email": "user1@example.com",
+        "password": "ValidPass123!",
+        "created_at": "2023-01-01T12:00:00Z"
+    },
+    {
+        "username": "validUser2",
+        "email": "user2@example.com",
+        "password": "ValidPass456!",
+        "created_at": "2023-02-01T12:00:00Z"
     }
-    for _ in range(10)
 ]
 
 # Edge case test data (boundary conditions)
 edge_case_data = [
-    # Valid userId, action, and zero as boundary condition
+    # Minimum length username
     {
-        "userId": generate_valid_uuid(),
-        "action": generate_valid_action(),
-        "data": {
-            "field1": "EdgeCaseString",
-            "field2": 0  # Boundary condition
-        }
+        "username": "u",
+        "email": "minuser@example.com",
+        "password": "MinPass123!",
+        "created_at": "2023-03-01T12:00:00Z"
+    },
+    # Maximum length username
+    {
+        "username": random_string(50),
+        "email": "maxuser@example.com",
+        "password": "MaxPass123!",
+        "created_at": "2023-04-01T12:00:00Z"
     }
 ]
 
 # Error case test data (invalid inputs)
 error_case_data = [
-    # Invalid userId
+    # Invalid email format
     {
-        "userId": generate_invalid_uuid(),
-        "action": generate_valid_action(),
-        "data": {
-            "field1": "ErrorCaseString",
-            "field2": generate_valid_positive_integer()
-        }
+        "username": "invalidEmailUser",
+        "email": "invalid-email",
+        "password": "InvalidPass123!",
+        "created_at": "2023-05-01T12:00:00Z"
     },
-    # Invalid action
+    # Missing password
     {
-        "userId": generate_valid_uuid(),
-        "action": generate_invalid_action(),
-        "data": {
-            "field1": "ErrorCaseString",
-            "field2": generate_valid_positive_integer()
-        }
-    },
-    # Invalid negative integer
-    {
-        "userId": generate_valid_uuid(),
-        "action": generate_valid_action(),
-        "data": {
-            "field1": "ErrorCaseString",
-            "field2": generate_invalid_integer()
-        }
+        "username": "missingPasswordUser",
+        "email": "missingpass@example.com",
+        "password": "",
+        "created_at": "2023-06-01T12:00:00Z"
     }
 ]
 
 # Special character and format test data
-special_character_data = [
-    # Special characters in field1
+special_char_data = [
+    # Username with special characters
     {
-        "userId": generate_valid_uuid(),
-        "action": generate_valid_action(),
-        "data": {
-            "field1": generate_special_character_string(),
-            "field2": generate_valid_positive_integer()
-        }
+        "username": "user!@#",
+        "email": "specialchar@example.com",
+        "password": "SpecialPass123!",
+        "created_at": "2023-07-01T12:00:00Z"
+    },
+    # Password with special characters
+    {
+        "username": "specialPasswordUser",
+        "email": "specialpass@example.com",
+        "password": "!@#$%^&*()_+",
+        "created_at": "2023-08-01T12:00:00Z"
     }
 ]
 
 # Combine all test data
-all_test_data = happy_path_data + edge_case_data + error_case_data + special_character_data
+all_test_data = happy_path_data + edge_case_data + error_case_data + special_char_data
 
-# Output the test data in JSON format
+# Output test data as JSON
 print(json.dumps(all_test_data, indent=2))
 
