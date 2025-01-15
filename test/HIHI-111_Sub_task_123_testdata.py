@@ -1,88 +1,77 @@
 import pandas as pd
 import numpy as np
 
-# Constants for data generation
-QUALITY_THRESHOLD = 7  # Threshold to classify high quality
-NUM_RECORDS = 30  # Total number of records to generate
-
-# Helper function to generate random data within a range
-def generate_random_data(min_val, max_val, size):
-    return np.random.uniform(min_val, max_val, size)
-
-# Happy path test data (valid, expected scenarios)
-# These records are expected to pass all validations and represent typical data
+# Happy Path Test Data: Valid, expected scenarios
+# These records represent typical, valid data entries for the wine quality dataset.
 happy_path_data = pd.DataFrame({
-    'fixed acidity': generate_random_data(5.0, 9.0, 10),
-    'volatile acidity': generate_random_data(0.1, 0.5, 10),
-    'citric acid': generate_random_data(0.0, 0.5, 10),
-    'residual sugar': generate_random_data(1.0, 10.0, 10),
-    'chlorides': generate_random_data(0.01, 0.1, 10),
-    'free sulfur dioxide': generate_random_data(10.0, 50.0, 10),
-    'total sulfur dioxide': generate_random_data(50.0, 150.0, 10),
-    'density': generate_random_data(0.990, 1.000, 10),
-    'pH': generate_random_data(3.0, 3.5, 10),
-    'sulphates': generate_random_data(0.3, 0.7, 10),
-    'alcohol': generate_random_data(9.0, 12.0, 10),
-    'quality': np.random.randint(3, 9, 10)
+    'fixed acidity': [7.0, 6.3, 8.1, 7.2, 6.8],
+    'volatile acidity': [0.27, 0.30, 0.28, 0.23, 0.26],
+    'citric acid': [0.36, 0.34, 0.40, 0.32, 0.35],
+    'residual sugar': [20.7, 1.6, 6.9, 8.5, 7.0],
+    'chlorides': [0.045, 0.049, 0.050, 0.044, 0.046],
+    'free sulfur dioxide': [45.0, 14.0, 30.0, 47.0, 35.0],
+    'total sulfur dioxide': [170.0, 132.0, 97.0, 186.0, 104.0],
+    'density': [1.001, 0.994, 0.995, 0.996, 0.994],
+    'pH': [3.0, 3.3, 3.2, 3.1, 3.2],
+    'sulphates': [0.45, 0.49, 0.44, 0.42, 0.47],
+    'alcohol': [8.8, 9.5, 10.1, 9.9, 10.0],
+    'quality': [6, 6, 6, 6, 6]
 })
-happy_path_data['high_quality'] = happy_path_data['quality'] >= QUALITY_THRESHOLD
 
-# Edge case test data (boundary conditions)
-# These records test the boundaries of valid input ranges
+# Edge Case Test Data: Boundary conditions
+# These records test the boundaries of the data, such as minimum and maximum values.
 edge_case_data = pd.DataFrame({
-    'fixed acidity': [5.0, 9.0],
-    'volatile acidity': [0.1, 0.5],
-    'citric acid': [0.0, 0.5],
-    'residual sugar': [1.0, 10.0],
-    'chlorides': [0.01, 0.1],
-    'free sulfur dioxide': [10.0, 50.0],
-    'total sulfur dioxide': [50.0, 150.0],
-    'density': [0.990, 1.000],
-    'pH': [3.0, 3.5],
-    'sulphates': [0.3, 0.7],
-    'alcohol': [9.0, 12.0],
-    'quality': [3, 8]
+    'fixed acidity': [4.6, 15.9],  # Min and max fixed acidity
+    'volatile acidity': [0.12, 1.58],  # Min and max volatile acidity
+    'citric acid': [0.0, 1.66],  # Min and max citric acid
+    'residual sugar': [0.6, 65.8],  # Min and max residual sugar
+    'chlorides': [0.009, 0.346],  # Min and max chlorides
+    'free sulfur dioxide': [2.0, 289.0],  # Min and max free sulfur dioxide
+    'total sulfur dioxide': [9.0, 440.0],  # Min and max total sulfur dioxide
+    'density': [0.987, 1.038],  # Min and max density
+    'pH': [2.72, 3.82],  # Min and max pH
+    'sulphates': [0.22, 2.0],  # Min and max sulphates
+    'alcohol': [8.0, 14.2],  # Min and max alcohol
+    'quality': [3, 9]  # Min and max quality
 })
-edge_case_data['high_quality'] = edge_case_data['quality'] >= QUALITY_THRESHOLD
 
-# Error case test data (invalid inputs)
-# These records contain invalid data to test error handling
+# Error Case Test Data: Invalid inputs
+# These records contain invalid data to test the system's error handling.
 error_case_data = pd.DataFrame({
-    'fixed acidity': [-1.0, 15.0],  # Invalid acidity values
-    'volatile acidity': [0.6, -0.1],  # Invalid volatile acidity
-    'citric acid': [0.6, -0.1],  # Invalid citric acid
-    'residual sugar': [-5.0, 20.0],  # Invalid residual sugar
-    'chlorides': [0.2, -0.05],  # Invalid chlorides
-    'free sulfur dioxide': [-10.0, 100.0],  # Invalid free sulfur dioxide
-    'total sulfur dioxide': [200.0, -50.0],  # Invalid total sulfur dioxide
-    'density': [1.1, 0.98],  # Invalid density
-    'pH': [2.5, 4.0],  # Invalid pH
-    'sulphates': [0.8, -0.2],  # Invalid sulphates
-    'alcohol': [5.0, 15.0],  # Invalid alcohol
-    'quality': [-1, 11]  # Invalid quality
+    'fixed acidity': [-1.0, 20.0],  # Invalid fixed acidity
+    'volatile acidity': [0.5, -0.1],  # Invalid volatile acidity
+    'citric acid': [0.5, -0.2],  # Invalid citric acid
+    'residual sugar': [-5.0, 70.0],  # Invalid residual sugar
+    'chlorides': [0.5, -0.1],  # Invalid chlorides
+    'free sulfur dioxide': [-10.0, 300.0],  # Invalid free sulfur dioxide
+    'total sulfur dioxide': [500.0, -20.0],  # Invalid total sulfur dioxide
+    'density': [0.5, 2.0],  # Invalid density
+    'pH': [1.0, 5.0],  # Invalid pH
+    'sulphates': [-0.5, 3.0],  # Invalid sulphates
+    'alcohol': [0.0, 20.0],  # Invalid alcohol
+    'quality': [-1, 15]  # Invalid quality
 })
-error_case_data['high_quality'] = error_case_data['quality'] >= QUALITY_THRESHOLD
 
-# Special character and format test data
-# These records test the handling of special characters and formats
-special_char_data = pd.DataFrame({
-    'fixed acidity': ['5.0', '9.0'],  # String format
-    'volatile acidity': ['0.1', '0.5'],  # String format
-    'citric acid': ['0.0', '0.5'],  # String format
-    'residual sugar': ['1.0', '10.0'],  # String format
-    'chlorides': ['0.01', '0.1'],  # String format
-    'free sulfur dioxide': ['10.0', '50.0'],  # String format
-    'total sulfur dioxide': ['50.0', '150.0'],  # String format
-    'density': ['0.990', '1.000'],  # String format
-    'pH': ['3.0', '3.5'],  # String format
-    'sulphates': ['0.3', '0.7'],  # String format
-    'alcohol': ['9.0', '12.0'],  # String format
-    'quality': ['3', '8']  # String format
+# Special Character and Format Test Data
+# These records include special characters and unusual formats to test data parsing.
+special_character_data = pd.DataFrame({
+    'fixed acidity': ['7.0', '6.3'],  # String format
+    'volatile acidity': ['0.27', '0.30'],  # String format
+    'citric acid': ['0.36', '0.34'],  # String format
+    'residual sugar': ['20.7', '1.6'],  # String format
+    'chlorides': ['0.045', '0.049'],  # String format
+    'free sulfur dioxide': ['45.0', '14.0'],  # String format
+    'total sulfur dioxide': ['170.0', '132.0'],  # String format
+    'density': ['1.001', '0.994'],  # String format
+    'pH': ['3.0', '3.3'],  # String format
+    'sulphates': ['0.45', '0.49'],  # String format
+    'alcohol': ['8.8', '9.5'],  # String format
+    'quality': ['6', '6']  # String format
 })
-special_char_data['high_quality'] = special_char_data['quality'].astype(int) >= QUALITY_THRESHOLD
 
 # Combine all test data into a single DataFrame
-test_data = pd.concat([happy_path_data, edge_case_data, error_case_data, special_char_data], ignore_index=True)
+test_data = pd.concat([happy_path_data, edge_case_data, error_case_data, special_character_data], ignore_index=True)
 
-# Display the generated test data
+# Display the test data
 print(test_data)
+
