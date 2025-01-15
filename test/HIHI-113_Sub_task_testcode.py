@@ -1,72 +1,83 @@
 import unittest
-import json
-from unittest.mock import patch
-from my_application import ApplicationLogic  # Assuming the application logic is in a module named my_application
+from datetime import datetime
+from my_application import UserRegistrationService  # hypothetical import
 
-class TestApplicationLogic(unittest.TestCase):
+class TestUserRegistrationService(unittest.TestCase):
 
     def setUp(self):
-        # Setup code to initialize the ApplicationLogic instance
-        self.app_logic = ApplicationLogic()
+        # Setup code to initialize the UserRegistrationService
+        self.service = UserRegistrationService()
 
     def tearDown(self):
-        # Teardown code if needed
+        # Teardown code to clean up after tests
         pass
 
-    def test_happy_path_valid_data(self):
-        # Test valid scenarios with happy path data
+    # Happy Path Tests
+    def test_valid_user_registration(self):
+        # Test valid user registration scenarios
         for data in happy_path_data:
             with self.subTest(data=data):
-                response = self.app_logic.process_request(data)
-                self.assertEqual(response.status_code, 200)
-                self.assertIn('success', response.json())
+                result = self.service.register_user(data)
+                self.assertTrue(result['success'])
+                self.assertEqual(result['message'], "User registered successfully")
 
-    def test_edge_case_boundary_conditions(self):
-        # Test edge cases with boundary conditions
-        for data in edge_case_data:
-            with self.subTest(data=data):
-                response = self.app_logic.process_request(data)
-                self.assertEqual(response.status_code, 400)
-                self.assertIn('error', response.json())
+    # Edge Case Tests
+    def test_minimum_length_username(self):
+        # Test registration with minimum length username
+        data = edge_case_data[0]
+        result = self.service.register_user(data)
+        self.assertTrue(result['success'])
+        self.assertEqual(result['message'], "User registered successfully")
 
-    def test_error_case_invalid_user_id(self):
-        # Test error scenario with invalid userId
+    def test_maximum_length_username(self):
+        # Test registration with maximum length username
+        data = edge_case_data[1]
+        result = self.service.register_user(data)
+        self.assertTrue(result['success'])
+        self.assertEqual(result['message'], "User registered successfully")
+
+    # Error Case Tests
+    def test_invalid_email_format(self):
+        # Test registration with invalid email format
         data = error_case_data[0]
-        response = self.app_logic.process_request(data)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn('Invalid userId', response.json()['message'])
+        result = self.service.register_user(data)
+        self.assertFalse(result['success'])
+        self.assertEqual(result['message'], "Invalid email format")
 
-    def test_error_case_invalid_action(self):
-        # Test error scenario with invalid action
+    def test_missing_password(self):
+        # Test registration with missing password
         data = error_case_data[1]
-        response = self.app_logic.process_request(data)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn('Invalid action', response.json()['message'])
+        result = self.service.register_user(data)
+        self.assertFalse(result['success'])
+        self.assertEqual(result['message'], "Password is required")
 
-    def test_error_case_invalid_integer(self):
-        # Test error scenario with invalid negative integer
-        data = error_case_data[2]
-        response = self.app_logic.process_request(data)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn('Invalid integer', response.json()['message'])
+    # Special Character Tests
+    def test_username_with_special_characters(self):
+        # Test registration with special characters in username
+        data = special_char_data[0]
+        result = self.service.register_user(data)
+        self.assertTrue(result['success'])
+        self.assertEqual(result['message'], "User registered successfully")
 
-    def test_special_character_handling(self):
-        # Test handling of special characters in input
-        for data in special_character_data:
-            with self.subTest(data=data):
-                response = self.app_logic.process_request(data)
-                self.assertEqual(response.status_code, 200)
-                self.assertIn('success', response.json())
+    def test_password_with_special_characters(self):
+        # Test registration with special characters in password
+        data = special_char_data[1]
+        result = self.service.register_user(data)
+        self.assertTrue(result['success'])
+        self.assertEqual(result['message'], "User registered successfully")
 
-    @patch('my_application.external_api_call')
-    def test_external_api_integration(self, mock_external_api_call):
-        # Test integration with external systems
-        mock_external_api_call.return_value = {'status': 'success'}
-        data = happy_path_data[0]
-        response = self.app_logic.process_request(data)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('success', response.json())
-        mock_external_api_call.assert_called_once()
+    # Additional Tests for Error Handling
+    def test_registration_with_future_date(self):
+        # Test registration with a future created_at date
+        future_date_data = {
+            "username": "futureUser",
+            "email": "future@example.com",
+            "password": "FuturePass123!",
+            "created_at": (datetime.now() + timedelta(days=1)).isoformat()
+        }
+        result = self.service.register_user(future_date_data)
+        self.assertFalse(result['success'])
+        self.assertEqual(result['message'], "Invalid created_at date")
 
 if __name__ == '__main__':
     unittest.main()
