@@ -3,61 +3,56 @@ import string
 import json
 
 # Helper functions
-def random_string(length=8):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+def random_string(length=10):
+    return ''.join(random.choices(string.ascii_letters, k=length))
 
 def random_email():
     return f"{random_string(5)}@{random_string(3)}.com"
 
-def random_password():
-    return random_string(12)
+def random_phone():
+    return f"+1-{random.randint(100, 999)}-{random.randint(1000, 9999)}"
 
-def random_transaction_id():
-    return random_string(10)
+def random_date():
+    return f"{random.randint(2000, 2023)}-{random.randint(1, 12):02}-{random.randint(1, 28):02}"
 
-def random_amount():
-    return round(random.uniform(1.0, 1000.0), 2)
+# Test Data Categories
 
-def random_currency():
-    return random.choice(['USD', 'EUR', 'GBP'])
-
-# Happy path test data
+# Happy path test data (valid, expected scenarios)
 happy_path_data = [
     # Valid user data
-    {"username": "user1", "email": "user1@example.com", "password": "Password123!"},
-    {"username": "user2", "email": "user2@example.com", "password": "SecurePass456@"},
-    # Valid transaction data
-    {"transaction_id": "TXN1234567", "amount": 100.50, "currency": "USD"},
-    {"transaction_id": "TXN7654321", "amount": 250.75, "currency": "EUR"},
+    {"username": "john_doe", "email": "john.doe@example.com", "phone": "+1-555-1234", "dob": "1990-01-01"},
+    {"username": "jane_smith", "email": "jane.smith@example.com", "phone": "+1-555-5678", "dob": "1985-05-15"},
+    {"username": "alice_wonder", "email": "alice.wonder@example.com", "phone": "+1-555-8765", "dob": "1992-07-20"},
 ]
 
-# Edge case test data
+# Edge case test data (boundary conditions)
 edge_case_data = [
-    # Boundary conditions for username length
-    {"username": "u", "email": "short@example.com", "password": "ShortPass1!"},
-    {"username": "u" * 50, "email": "long@example.com", "password": "LongPass123!"},
-    # Boundary conditions for amount
-    {"transaction_id": "TXN0000001", "amount": 0.01, "currency": "USD"},
-    {"transaction_id": "TXN9999999", "amount": 999999.99, "currency": "GBP"},
+    # Minimum length username
+    {"username": "a", "email": random_email(), "phone": random_phone(), "dob": random_date()},
+    # Maximum length username
+    {"username": random_string(50), "email": random_email(), "phone": random_phone(), "dob": random_date()},
+    # Leap year date of birth
+    {"username": "leap_year", "email": random_email(), "phone": random_phone(), "dob": "2000-02-29"},
 ]
 
-# Error case test data
+# Error case test data (invalid inputs)
 error_case_data = [
     # Invalid email format
-    {"username": "user3", "email": "invalid-email", "password": "InvalidEmail1!"},
-    # Missing required fields
-    {"username": "user4", "email": "user4@example.com"},  # Missing password
-    {"transaction_id": "TXN1234568", "amount": 100.50},  # Missing currency
+    {"username": "invalid_email", "email": "invalid-email", "phone": random_phone(), "dob": random_date()},
+    # Invalid phone number format
+    {"username": "invalid_phone", "email": random_email(), "phone": "12345", "dob": random_date()},
+    # Future date of birth
+    {"username": "future_dob", "email": random_email(), "phone": random_phone(), "dob": "2030-01-01"},
 ]
 
 # Special character and format test data
 special_char_data = [
-    # Special characters in username
-    {"username": "user!@#", "email": "special@example.com", "password": "SpecialChar1!"},
-    # Special characters in email
-    {"username": "user5", "email": "user5@ex!ample.com", "password": "SpecialEmail1!"},
-    # Special characters in transaction ID
-    {"transaction_id": "TXN!@#123", "amount": 150.00, "currency": "USD"},
+    # Username with special characters
+    {"username": "user!@#", "email": random_email(), "phone": random_phone(), "dob": random_date()},
+    # Email with special characters
+    {"username": "special_email", "email": "special!@example.com", "phone": random_phone(), "dob": random_date()},
+    # Phone with special characters
+    {"username": "special_phone", "email": random_email(), "phone": "+1-555-!@#$", "dob": random_date()},
 ]
 
 # Combine all test data
@@ -66,5 +61,3 @@ all_test_data = happy_path_data + edge_case_data + error_case_data + special_cha
 # Output test data as JSON
 print(json.dumps(all_test_data, indent=2))
 
-
-This code generates test data for a system with user and transaction data, covering happy path, edge cases, error cases, and special character scenarios. Each section is commented to explain the purpose of the test data, and the data is output in JSON format.
