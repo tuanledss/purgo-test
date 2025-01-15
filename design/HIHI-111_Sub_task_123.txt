@@ -13,8 +13,8 @@
     - Input: CSV file path (`/dbfs/FileStore/winequality-white.csv`)
     - Output: Pandas DataFrame
   - **Data Preprocessor:**
-    - Input: DataFrame
-    - Output: Preprocessed DataFrame with 'high_quality' label
+    - Input: Pandas DataFrame
+    - Output: Preprocessed DataFrames for training, validation, and test sets
   - **Model Trainer:**
     - Input: Training DataFrame
     - Output: Trained Random Forest model
@@ -26,60 +26,60 @@
     - Output: Logged data in MLflow
 
 - **Dependencies and External Systems:**
-  - **Databricks:** For data storage and processing.
-  - **MLflow:** For experiment tracking and model management.
-  - **Scikit-learn:** For implementing the Random Forest algorithm.
+  - **Databricks:** For data storage and processing
+  - **MLflow:** For experiment tracking and model management
+  - **Scikit-learn:** For Random Forest implementation
 
 #### 2. Data Flow
 
 - **Data Transformation Steps:**
   1. Load the dataset using Pandas.
-  2. Convert 'quality' to 'high_quality' using a threshold (e.g., quality >= 7).
+  2. Convert 'quality' to 'high_quality' using a threshold (e.g., quality >= 7 as high quality).
   3. Split the dataset into 70% training, 15% validation, and 15% test sets.
 
 - **Data Formats and Schemas:**
   - **Input DataFrame Schema:**
     - Columns: `fixed acidity`, `volatile acidity`, `citric acid`, `residual sugar`, `chlorides`, `free sulfur dioxide`, `total sulfur dioxide`, `density`, `pH`, `sulphates`, `alcohol`, `quality`
   - **Output DataFrame Schema:**
-    - Columns: `fixed acidity`, `volatile acidity`, `citric acid`, `residual sugar`, `chlorides`, `free sulfur dioxide`, `total sulfur dioxide`, `density`, `pH`, `sulphates`, `alcohol`, `high_quality`
+    - Columns: Same as input with an additional `high_quality` column (binary)
 
 - **Validation Rules and Error Handling:**
-  - Validate that the dataset is loaded correctly and contains all expected columns.
   - Ensure no missing values in critical columns; handle missing data by imputation or removal.
-  - Validate the conversion of 'quality' to 'high_quality' by checking the distribution of the new label.
+  - Validate that the dataset is correctly split into the specified proportions.
+  - Handle errors in data loading and conversion with appropriate logging and exception handling.
 
 #### 3. Implementation Steps
 
-- **Step 1: Data Loading**
-  - Implement the data loading function using Pandas.
-  - **Acceptance Criteria:** Data is loaded into a DataFrame with correct schema.
+1. **Data Loading:**
+   - Implement a function `load_data(file_path)` to read the CSV file into a DataFrame.
+   - **Acceptance Criteria:** Data is loaded successfully with no missing values in critical columns.
 
-- **Step 2: Data Preprocessing**
-  - Implement the conversion of 'quality' to 'high_quality'.
-  - Split the dataset into training, validation, and test sets.
-  - **Acceptance Criteria:** Data is preprocessed and split correctly with no missing values.
+2. **Data Preprocessing:**
+   - Implement a function `preprocess_data(df)` to convert 'quality' to 'high_quality' and split the dataset.
+   - **Acceptance Criteria:** Data is split into training, validation, and test sets with correct proportions.
 
-- **Step 3: Model Training**
-  - Implement the Random Forest model using Scikit-learn.
-  - **Acceptance Criteria:** Model is trained on the training set with default or specified hyperparameters.
+3. **Model Training:**
+   - Implement a function `train_model(train_df)` to train a Random Forest model.
+   - **Acceptance Criteria:** Model is trained and ready for validation.
 
-- **Step 4: Model Validation and Testing**
-  - Evaluate the model on validation and test sets.
-  - **Acceptance Criteria:** Model achieves at least 80% accuracy on the test set.
+4. **Model Validation and Testing:**
+   - Implement functions `validate_model(model, val_df)` and `test_model(model, test_df)` to evaluate model performance.
+   - **Acceptance Criteria:** Model achieves at least 80% accuracy on the test dataset.
 
-- **Step 5: Experiment Tracking**
-  - Set up MLflow to log parameters, metrics, and the trained model.
-  - **Acceptance Criteria:** All experiments are logged in MLflow with accessible metrics.
+5. **Experiment Tracking:**
+   - Set up MLflow to log parameters, metrics, and the trained model.
+   - **Acceptance Criteria:** All experiments are logged in MLflow with accessible metrics.
 
 #### 4. Technical Considerations
 
 - **Performance Requirements:**
-  - The model should be trained and evaluated within a reasonable time frame (e.g., under 30 minutes for the entire pipeline).
+  - Ensure efficient data loading and preprocessing to handle large datasets.
+  - Optimize Random Forest hyperparameters for best performance.
 
 - **Security Considerations:**
-  - Ensure data privacy by restricting access to the dataset and MLflow logs.
-  - Implement authentication for accessing Databricks and MLflow.
+  - Secure access to Databricks and MLflow with appropriate authentication.
+  - Ensure data privacy and compliance with relevant regulations.
 
 - **Scalability Aspects:**
-  - Design the pipeline to handle larger datasets by using scalable data processing techniques in Databricks.
-  - Ensure the model can be retrained with new data without significant changes to the pipeline.
+  - Design the pipeline to handle increasing data volumes by leveraging Databricks' scalable infrastructure.
+  - Ensure the model can be retrained and updated with new data efficiently.
