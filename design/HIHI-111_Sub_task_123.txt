@@ -2,99 +2,92 @@
 #### 1. Component Architecture
 
 - **Major Components and Interactions:**
-  - **Data Loader:** Loads the white wine quality dataset from Databricks.
-  - **Data Preprocessor:** Splits the dataset into training, validation, and test sets. Converts the 'quality' label into a binary variable 'high_quality'.
-  - **Model Trainer:** Trains a Random Forest classifier on the training set.
-  - **Model Validator:** Evaluates the model on the validation and test datasets.
-  - **Experiment Tracker:** Uses MLflow to log model parameters, performance metrics, and save the trained model.
+  - **Data Loader:** Responsible for loading the dataset from the specified CSV file path.
+  - **Data Preprocessor:** Converts the 'quality' label into a binary variable 'high_quality' and splits the dataset into training, validation, and test sets.
+  - **Model Trainer:** Implements the Random Forest algorithm to train the classification model.
+  - **Model Validator and Tester:** Evaluates the model's performance on validation and test datasets.
+  - **Experiment Tracker:** Utilizes MLflow to log model parameters, performance metrics, and save the trained model.
   - **Model Registry:** Registers the final model in MLflow for future use.
 
 - **Input/Output Interfaces:**
-  - **Data Loader Input:** CSV file path from Databricks.
+  - **Data Loader Input:** CSV file path.
   - **Data Loader Output:** Pandas DataFrame.
   - **Data Preprocessor Input:** DataFrame from Data Loader.
-  - **Data Preprocessor Output:** Training, validation, and test DataFrames.
+  - **Data Preprocessor Output:** Preprocessed DataFrames for training, validation, and test sets.
   - **Model Trainer Input:** Training DataFrame.
   - **Model Trainer Output:** Trained Random Forest model.
-  - **Model Validator Input:** Validation and test DataFrames, trained model.
-  - **Model Validator Output:** Performance metrics.
-  - **Experiment Tracker Input:** Model parameters, metrics, trained model.
-  - **Experiment Tracker Output:** Logged experiment in MLflow.
-  - **Model Registry Input:** Trained model, metrics.
+  - **Model Validator and Tester Input:** Validation and test DataFrames.
+  - **Model Validator and Tester Output:** Performance metrics.
+  - **Experiment Tracker Input:** Model parameters and metrics.
+  - **Experiment Tracker Output:** Logged experiments in MLflow.
+  - **Model Registry Input:** Trained model and metrics.
   - **Model Registry Output:** Registered model in MLflow.
 
 - **Dependencies and External Systems:**
-  - **Databricks:** For data storage and processing.
-  - **MLflow:** For experiment tracking and model registry.
-  - **Scikit-learn:** For Random Forest implementation.
   - **Pandas:** For data manipulation.
+  - **Scikit-learn:** For implementing the Random Forest algorithm.
+  - **MLflow:** For experiment tracking and model registry.
+  - **Databricks:** For data storage and processing environment.
 
 #### 2. Data Flow
 
 - **Data Transformation Steps:**
-  1. **Load Data:** Read CSV file into a DataFrame.
-  2. **Preprocess Data:**
-     - Split data into 70% training, 15% validation, and 15% test sets.
-     - Convert 'quality' to 'high_quality' using a threshold (e.g., quality >= 7).
-  3. **Train Model:** Fit a Random Forest classifier on the training set.
-  4. **Validate Model:** Evaluate on validation set, adjust hyperparameters if necessary.
-  5. **Test Model:** Evaluate final model on the test set.
+  1. **Load Data:** Read the CSV file into a Pandas DataFrame.
+  2. **Convert 'quality' to 'high_quality':** Define a threshold (e.g., quality >= 7) to classify wines as high quality.
+  3. **Split Data:** Divide the dataset into training (70%), validation (15%), and test (15%) sets.
+  4. **Feature Scaling:** Normalize features if necessary.
 
 - **Data Formats and Schemas:**
-  - **Input DataFrame Schema:** 
-    - Columns: 'fixed acidity', 'volatile acidity', 'citric acid', 'residual sugar', 'chlorides', 'free sulfur dioxide', 'total sulfur dioxide', 'density', 'pH', 'sulphates', 'alcohol', 'quality'.
+  - **Input DataFrame Schema:**
+    - Columns: `fixed acidity`, `volatile acidity`, `citric acid`, `residual sugar`, `chlorides`, `free sulfur dioxide`, `total sulfur dioxide`, `density`, `pH`, `sulphates`, `alcohol`, `quality`
   - **Output DataFrame Schema:**
-    - Columns: Same as input with 'quality' converted to 'high_quality'.
+    - Columns: All input columns plus `high_quality` (binary)
 
 - **Validation Rules and Error Handling:**
-  - Ensure no missing values in the dataset.
-  - Validate that 'quality' is converted correctly to 'high_quality'.
-  - Handle errors in data loading and conversion with appropriate logging.
+  - **Validation Rules:**
+    - Ensure no missing values in critical columns.
+    - Validate that the 'quality' column is within expected range (0-10).
+  - **Error Handling:**
+    - Log and handle missing data by imputation or removal.
+    - Raise exceptions for invalid data types or out-of-range values.
 
 #### 3. Implementation Steps
 
-- **Development Steps:**
-  1. **Implement Data Loader:**
-     - Load CSV into DataFrame.
-     - Acceptance Criteria: DataFrame loaded with correct schema.
-  2. **Implement Data Preprocessor:**
-     - Split data and convert 'quality' to 'high_quality'.
-     - Acceptance Criteria: Data split correctly, 'high_quality' conversion verified.
-  3. **Implement Model Trainer:**
-     - Train Random Forest model.
-     - Acceptance Criteria: Model trained with default hyperparameters.
-  4. **Implement Model Validator:**
-     - Evaluate model on validation set.
-     - Acceptance Criteria: Validation metrics logged.
-  5. **Implement Experiment Tracker:**
-     - Log parameters and metrics in MLflow.
-     - Acceptance Criteria: Experiment logged with all details.
-  6. **Implement Model Registry:**
-     - Register model in MLflow.
-     - Acceptance Criteria: Model registered and accessible.
+- **Step 1: Data Loading**
+  - Implement the data loading function to read the CSV file.
+  - **Acceptance Criteria:** Data is successfully loaded into a DataFrame.
 
-- **Order of Implementation:**
-  1. Data Loader
-  2. Data Preprocessor
-  3. Model Trainer
-  4. Model Validator
-  5. Experiment Tracker
-  6. Model Registry
+- **Step 2: Data Preprocessing**
+  - Implement conversion of 'quality' to 'high_quality'.
+  - Split the data into training, validation, and test sets.
+  - **Acceptance Criteria:** Data is correctly preprocessed and split.
 
-- **Acceptance Criteria for Each Step:**
-  - Each step must meet its specific acceptance criteria as outlined above.
+- **Step 3: Model Training**
+  - Implement the Random Forest training function.
+  - **Acceptance Criteria:** Model is trained without errors.
+
+- **Step 4: Model Validation and Testing**
+  - Implement evaluation functions to calculate accuracy and other metrics.
+  - **Acceptance Criteria:** Model achieves at least 80% accuracy on the test set.
+
+- **Step 5: Experiment Tracking**
+  - Set up MLflow to log parameters and metrics.
+  - **Acceptance Criteria:** Experiments are logged and accessible in MLflow.
+
+- **Step 6: Model Registration**
+  - Register the trained model in MLflow.
+  - **Acceptance Criteria:** Model is registered and documented in MLflow.
 
 #### 4. Technical Considerations
 
 - **Performance Requirements:**
-  - Model must achieve at least 80% accuracy on the test dataset.
-  - Ensure efficient data loading and processing to handle large datasets.
+  - Ensure efficient data loading and preprocessing to handle large datasets.
+  - Optimize Random Forest hyperparameters for speed and accuracy.
 
 - **Security Considerations:**
-  - Ensure data privacy by anonymizing any sensitive information.
-  - Secure access to Databricks and MLflow with appropriate authentication.
+  - Secure access to data and MLflow with appropriate authentication.
+  - Ensure data privacy by anonymizing sensitive information if necessary.
 
 - **Scalability Aspects:**
-  - Design the pipeline to handle increasing data volumes.
-  - Use scalable storage and compute resources in Databricks.
-  - Ensure MLflow can handle multiple concurrent experiment logs.
+  - Design the pipeline to handle increasing data volumes by leveraging Databricks' distributed computing capabilities.
+  - Ensure the model can be retrained and updated with new data without significant downtime.
