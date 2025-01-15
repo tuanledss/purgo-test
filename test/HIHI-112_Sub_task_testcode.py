@@ -2,19 +2,8 @@ import unittest
 import json
 from unittest.mock import patch
 
-# Assuming the backend service is implemented in a module named `backend_service`
-# and it has a function `process_user_data` that takes a user data dictionary as input
-# and returns a response dictionary with 'status' and 'message' keys.
-
-# Mock function to simulate backend service processing
-def mock_process_user_data(user_data):
-    if not user_data['userId']:
-        return {'status': 400, 'message': 'User ID cannot be empty'}
-    if not is_valid_email(user_data['email']):
-        return {'status': 400, 'message': 'Invalid email format'}
-    if user_data['role'] not in ['admin', 'user', 'guest']:
-        return {'status': 400, 'message': 'Unsupported role'}
-    return {'status': 200, 'message': 'User data processed successfully'}
+# Assuming the functions to be tested are imported from the module
+# from your_module import process_user_data, send_notification
 
 class TestUserDataProcessing(unittest.TestCase):
 
@@ -26,61 +15,112 @@ class TestUserDataProcessing(unittest.TestCase):
         # Teardown code if needed
         pass
 
-    # Happy path test cases
-    def test_valid_user_data(self):
-        # Test valid user data scenarios
+    # Test Happy Path Scenarios
+    def test_happy_path_valid_user_data(self):
+        # Test with valid user data
+        happy_path_data = [
+            {
+                "userId": 1,
+                "name": "John Doe",
+                "email": "john.doe@example.com",
+                "phoneNumber": "+12345678901"
+            },
+            {
+                "userId": 2,
+                "name": "Jane Smith",
+                "email": "jane.smith@example.com",
+                "phoneNumber": "+19876543210"
+            }
+        ]
         for data in happy_path_data:
             with self.subTest(data=data):
-                response = mock_process_user_data(data)
-                self.assertEqual(response['status'], 200)
-                self.assertEqual(response['message'], 'User data processed successfully')
+                result = process_user_data(data)
+                self.assertTrue(result['success'])
+                self.assertEqual(result['message'], "User data processed successfully")
 
-    # Edge case test cases
-    def test_edge_case_user_data(self):
-        # Test edge case scenarios
+    # Test Edge Case Scenarios
+    def test_edge_case_user_id_and_phone_number(self):
+        # Test with edge case userId and phoneNumber
+        edge_case_data = [
+            {
+                "userId": 0,
+                "name": "Edge Case User",
+                "email": "edge.case@example.com",
+                "phoneNumber": "+10000000000"
+            },
+            {
+                "userId": 2147483647,
+                "name": "Max Int User",
+                "email": "max.int@example.com",
+                "phoneNumber": "+19999999999"
+            }
+        ]
         for data in edge_case_data:
             with self.subTest(data=data):
-                response = mock_process_user_data(data)
-                self.assertEqual(response['status'], 200)
-                self.assertEqual(response['message'], 'User data processed successfully')
+                result = process_user_data(data)
+                self.assertTrue(result['success'])
+                self.assertEqual(result['message'], "User data processed successfully")
 
-    # Error case test cases
-    def test_error_case_user_data(self):
-        # Test error scenarios
+    # Test Error Scenarios
+    def test_error_case_invalid_email_and_phone(self):
+        # Test with invalid email and phone number
+        error_case_data = [
+            {
+                "userId": 3,
+                "name": "Invalid Email User",
+                "email": "invalid-email",
+                "phoneNumber": "+12345678901"
+            },
+            {
+                "userId": 4,
+                "name": "Invalid Phone User",
+                "email": "valid.email@example.com",
+                "phoneNumber": "1234567890"
+            }
+        ]
         for data in error_case_data:
             with self.subTest(data=data):
-                response = mock_process_user_data(data)
-                self.assertEqual(response['status'], 400)
+                result = process_user_data(data)
+                self.assertFalse(result['success'])
+                self.assertIn("Invalid", result['message'])
 
-    # Special character test cases
-    def test_special_character_user_data(self):
-        # Test special character scenarios
+    # Test Special Character and Format Scenarios
+    def test_special_character_in_name_and_email(self):
+        # Test with special characters in name and email
+        special_character_data = [
+            {
+                "userId": 5,
+                "name": "Special!@#User",
+                "email": "special!@#user@example.com",
+                "phoneNumber": "+12345678901"
+            },
+            {
+                "userId": 6,
+                "name": "Normal User",
+                "email": "normal.user+test@example.com",
+                "phoneNumber": "+12345678901"
+            }
+        ]
         for data in special_character_data:
             with self.subTest(data=data):
-                response = mock_process_user_data(data)
-                self.assertEqual(response['status'], 200)
-                self.assertEqual(response['message'], 'User data processed successfully')
+                result = process_user_data(data)
+                self.assertTrue(result['success'])
+                self.assertEqual(result['message'], "User data processed successfully")
 
-    # Test invalid email format
-    def test_invalid_email_format(self):
-        data = {"userId": "invalidEmail", "name": "Invalid Email", "email": "invalid-email", "role": "admin"}
-        response = mock_process_user_data(data)
-        self.assertEqual(response['status'], 400)
-        self.assertEqual(response['message'], 'Invalid email format')
-
-    # Test empty userId
-    def test_empty_user_id(self):
-        data = {"userId": "", "name": "Empty UserId", "email": "empty.userid@example.com", "role": "user"}
-        response = mock_process_user_data(data)
-        self.assertEqual(response['status'], 400)
-        self.assertEqual(response['message'], 'User ID cannot be empty')
-
-    # Test unsupported role
-    def test_unsupported_role(self):
-        data = {"userId": "unsupportedRole", "name": "Unsupported Role", "email": "unsupported.role@example.com", "role": "superuser"}
-        response = mock_process_user_data(data)
-        self.assertEqual(response['status'], 400)
-        self.assertEqual(response['message'], 'Unsupported role')
+    # Test Notification Sending
+    @patch('your_module.send_notification')
+    def test_notification_service_integration(self, mock_send_notification):
+        # Mock the notification service
+        mock_send_notification.return_value = True
+        data = {
+            "userId": 1,
+            "name": "John Doe",
+            "email": "john.doe@example.com",
+            "phoneNumber": "+12345678901"
+        }
+        result = process_user_data(data)
+        self.assertTrue(result['success'])
+        mock_send_notification.assert_called_once_with(data['email'], "Notification message")
 
 if __name__ == '__main__':
     unittest.main()
