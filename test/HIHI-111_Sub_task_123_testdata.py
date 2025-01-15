@@ -1,60 +1,130 @@
 import pandas as pd
 import random
 
+# Constants for data generation
+QUALITY_THRESHOLD = 7
+NUM_RECORDS = 30
+
+# Helper function to generate random float within a range
+def random_float(min_val, max_val, precision=2):
+    return round(random.uniform(min_val, max_val), precision)
+
 # Happy path test data (valid, expected scenarios)
-# These records represent typical, valid entries for the wine quality dataset.
+# These records are expected to pass all validations and represent typical data
 happy_path_data = [
-    # Valid record with average values
-    {'fixed acidity': 7.0, 'volatile acidity': 0.27, 'citric acid': 0.36, 'residual sugar': 20.7, 'chlorides': 0.045,
-     'free sulfur dioxide': 45.0, 'total sulfur dioxide': 170.0, 'density': 1.001, 'pH': 3.0, 'sulphates': 0.45,
-     'alcohol': 8.8, 'quality': 6},
-    # Valid record with high quality
-    {'fixed acidity': 6.3, 'volatile acidity': 0.3, 'citric acid': 0.34, 'residual sugar': 1.6, 'chlorides': 0.049,
-     'free sulfur dioxide': 14.0, 'total sulfur dioxide': 132.0, 'density': 0.994, 'pH': 3.3, 'sulphates': 0.49,
-     'alcohol': 9.5, 'quality': 8},
-    # Valid record with low quality
-    {'fixed acidity': 8.1, 'volatile acidity': 0.28, 'citric acid': 0.4, 'residual sugar': 6.9, 'chlorides': 0.05,
-     'free sulfur dioxide': 30.0, 'total sulfur dioxide': 97.0, 'density': 0.9951, 'pH': 3.26, 'sulphates': 0.44,
-     'alcohol': 10.1, 'quality': 5},
+    {
+        "fixed_acidity": random_float(6.0, 9.0),
+        "volatile_acidity": random_float(0.2, 0.5),
+        "citric_acid": random_float(0.2, 0.4),
+        "residual_sugar": random_float(1.0, 3.0),
+        "chlorides": random_float(0.03, 0.05),
+        "free_sulfur_dioxide": random_float(20.0, 40.0),
+        "total_sulfur_dioxide": random_float(100.0, 150.0),
+        "density": random_float(0.990, 0.995),
+        "pH": random_float(3.0, 3.5),
+        "sulphates": random_float(0.4, 0.6),
+        "alcohol": random_float(10.0, 12.0),
+        "quality": random.randint(5, 8)
+    } for _ in range(10)
 ]
 
 # Edge case test data (boundary conditions)
-# These records test the boundaries of the dataset's valid range.
+# These records test the boundaries of valid input ranges
 edge_case_data = [
-    # Minimum values for each feature
-    {'fixed acidity': 3.8, 'volatile acidity': 0.08, 'citric acid': 0.0, 'residual sugar': 0.6, 'chlorides': 0.009,
-     'free sulfur dioxide': 2.0, 'total sulfur dioxide': 9.0, 'density': 0.9871, 'pH': 2.72, 'sulphates': 0.22,
-     'alcohol': 8.0, 'quality': 3},
-    # Maximum values for each feature
-    {'fixed acidity': 14.2, 'volatile acidity': 1.1, 'citric acid': 1.66, 'residual sugar': 65.8, 'chlorides': 0.346,
-     'free sulfur dioxide': 289.0, 'total sulfur dioxide': 440.0, 'density': 1.03898, 'pH': 3.82, 'sulphates': 2.0,
-     'alcohol': 14.2, 'quality': 9},
+    {
+        "fixed_acidity": 6.0,  # Lower boundary
+        "volatile_acidity": 0.2,  # Lower boundary
+        "citric_acid": 0.2,  # Lower boundary
+        "residual_sugar": 1.0,  # Lower boundary
+        "chlorides": 0.03,  # Lower boundary
+        "free_sulfur_dioxide": 20.0,  # Lower boundary
+        "total_sulfur_dioxide": 100.0,  # Lower boundary
+        "density": 0.990,  # Lower boundary
+        "pH": 3.0,  # Lower boundary
+        "sulphates": 0.4,  # Lower boundary
+        "alcohol": 10.0,  # Lower boundary
+        "quality": 5  # Lower boundary
+    },
+    {
+        "fixed_acidity": 9.0,  # Upper boundary
+        "volatile_acidity": 0.5,  # Upper boundary
+        "citric_acid": 0.4,  # Upper boundary
+        "residual_sugar": 3.0,  # Upper boundary
+        "chlorides": 0.05,  # Upper boundary
+        "free_sulfur_dioxide": 40.0,  # Upper boundary
+        "total_sulfur_dioxide": 150.0,  # Upper boundary
+        "density": 0.995,  # Upper boundary
+        "pH": 3.5,  # Upper boundary
+        "sulphates": 0.6,  # Upper boundary
+        "alcohol": 12.0,  # Upper boundary
+        "quality": 8  # Upper boundary
+    }
 ]
 
 # Error case test data (invalid inputs)
-# These records contain invalid data to test error handling.
+# These records are expected to fail validation checks
 error_case_data = [
-    # Negative values for features
-    {'fixed acidity': -1.0, 'volatile acidity': -0.5, 'citric acid': -0.1, 'residual sugar': -2.0, 'chlorides': -0.01,
-     'free sulfur dioxide': -5.0, 'total sulfur dioxide': -10.0, 'density': -0.99, 'pH': -3.0, 'sulphates': -0.5,
-     'alcohol': -9.0, 'quality': -1},
-    # Non-numeric values for features
-    {'fixed acidity': 'NaN', 'volatile acidity': 'NaN', 'citric acid': 'NaN', 'residual sugar': 'NaN', 'chlorides': 'NaN',
-     'free sulfur dioxide': 'NaN', 'total sulfur dioxide': 'NaN', 'density': 'NaN', 'pH': 'NaN', 'sulphates': 'NaN',
-     'alcohol': 'NaN', 'quality': 'NaN'},
+    {
+        "fixed_acidity": -1.0,  # Invalid negative value
+        "volatile_acidity": 0.5,
+        "citric_acid": 0.3,
+        "residual_sugar": 2.0,
+        "chlorides": 0.04,
+        "free_sulfur_dioxide": 30.0,
+        "total_sulfur_dioxide": 120.0,
+        "density": 0.992,
+        "pH": 3.2,
+        "sulphates": 0.5,
+        "alcohol": 11.0,
+        "quality": 6
+    },
+    {
+        "fixed_acidity": 7.0,
+        "volatile_acidity": 0.5,
+        "citric_acid": 0.3,
+        "residual_sugar": 2.0,
+        "chlorides": 0.04,
+        "free_sulfur_dioxide": 30.0,
+        "total_sulfur_dioxide": 120.0,
+        "density": 0.992,
+        "pH": 3.2,
+        "sulphates": 0.5,
+        "alcohol": 11.0,
+        "quality": 10  # Invalid quality value
+    }
 ]
 
 # Special character and format test data
-# These records include special characters and unusual formats.
+# These records test the handling of special characters and formats
 special_character_data = [
-    # Special characters in numeric fields
-    {'fixed acidity': '7.0$', 'volatile acidity': '0.27%', 'citric acid': '0.36#', 'residual sugar': '20.7@',
-     'chlorides': '0.045!', 'free sulfur dioxide': '45.0*', 'total sulfur dioxide': '170.0&', 'density': '1.001^',
-     'pH': '3.0(', 'sulphates': '0.45)', 'alcohol': '8.8_', 'quality': '6+'},
-    # Mixed data types
-    {'fixed acidity': 7.0, 'volatile acidity': '0.27', 'citric acid': 0.36, 'residual sugar': '20.7', 'chlorides': 0.045,
-     'free sulfur dioxide': '45', 'total sulfur dioxide': 170.0, 'density': '1.001', 'pH': 3.0, 'sulphates': '0.45',
-     'alcohol': 8.8, 'quality': '6'},
+    {
+        "fixed_acidity": "7.0",  # String instead of float
+        "volatile_acidity": 0.3,
+        "citric_acid": 0.3,
+        "residual_sugar": 2.0,
+        "chlorides": 0.04,
+        "free_sulfur_dioxide": 30.0,
+        "total_sulfur_dioxide": 120.0,
+        "density": 0.992,
+        "pH": 3.2,
+        "sulphates": 0.5,
+        "alcohol": 11.0,
+        "quality": 6
+    },
+    {
+        "fixed_acidity": 7.0,
+        "volatile_acidity": 0.3,
+        "citric_acid": 0.3,
+        "residual_sugar": 2.0,
+        "chlorides": 0.04,
+        "free_sulfur_dioxide": 30.0,
+        "total_sulfur_dioxide": 120.0,
+        "density": 0.992,
+        "pH": 3.2,
+        "sulphates": 0.5,
+        "alcohol": 11.0,
+        "quality": "6"  # String instead of integer
+    }
 ]
 
 # Combine all test data into a single list
@@ -63,6 +133,5 @@ test_data = happy_path_data + edge_case_data + error_case_data + special_charact
 # Convert test data to DataFrame
 test_df = pd.DataFrame(test_data)
 
-# Display the test data
+# Display the generated test data
 print(test_df)
-
