@@ -14,62 +14,59 @@
   - **Backend to Notification Service:** REST API calls with JSON payloads.
 
 - **Dependencies and External Systems:**
-  - **React.js** for the frontend framework.
-  - **Node.js** and **Express.js** for the backend server.
-  - **PostgreSQL** for the database.
+  - **React.js** for UI development.
+  - **Node.js** and **Express.js** for backend development.
+  - **PostgreSQL** for database management.
   - **OAuth 2.0** for authentication.
   - **Twilio** for SMS notifications and **SendGrid** for email notifications.
 
 2. Data Flow
 - **Data Transformation Steps:**
   - **User Input:** Data is collected from the UI and sent to the backend in JSON format.
-  - **Backend Processing:** Data is validated, transformed, and stored in the database.
-  - **Data Retrieval:** Data is fetched from the database, transformed into JSON, and sent to the UI.
-  - **Notification Trigger:** Upon certain events, data is formatted and sent to the Notification Service.
+  - **Data Processing:** The backend processes the data, applying business logic and transformations.
+  - **Database Operations:** Processed data is stored or retrieved from the PostgreSQL database.
+  - **Notification Trigger:** Based on certain conditions, notifications are sent via the Notification Service.
 
 - **Data Formats and Schemas:**
-  - **User Data:** JSON schema with fields like `userId`, `name`, `email`, `passwordHash`.
-  - **Notification Data:** JSON schema with fields like `recipient`, `message`, `type`.
+  - **User Data:** JSON format with fields like `userId`, `name`, `email`, `phoneNumber`.
+  - **Database Schema:** Tables for `Users`, `Transactions`, `Notifications` with appropriate fields and data types.
+  - **Notification Payload:** JSON format with fields like `recipient`, `message`, `type`.
 
 - **Validation Rules and Error Handling:**
-  - **User Input Validation:** Ensure all required fields are present and correctly formatted (e.g., email format, password strength).
-  - **Error Handling:** Return HTTP status codes (e.g., 400 for bad requests, 500 for server errors) with error messages in JSON format.
+  - **Input Validation:** Ensure all required fields are present and correctly formatted (e.g., email format, phone number format).
+  - **Error Handling:** Implement try-catch blocks in the backend to handle exceptions and return appropriate HTTP status codes (e.g., 400 for bad requests, 500 for server errors).
 
 3. Implementation Steps
-- **Step 1: Set Up Development Environment**
-  - Install Node.js, PostgreSQL, and React.js.
-  - Acceptance Criteria: Development environment is fully operational.
+- **Step 1: UI Development**
+  - Implement the React.js components for user interaction.
+  - Acceptance Criteria: UI components render correctly and send data to the backend.
 
-- **Step 2: Develop Backend Service**
-  - Implement RESTful API endpoints using Express.js.
-  - Acceptance Criteria: All endpoints return expected responses with correct status codes.
+- **Step 2: Backend API Development**
+  - Develop RESTful APIs using Node.js and Express.js.
+  - Acceptance Criteria: APIs respond correctly to requests with appropriate status codes.
 
-- **Step 3: Implement Database Schema**
-  - Design and create tables in PostgreSQL.
-  - Acceptance Criteria: Database schema matches the specified design.
+- **Step 3: Database Schema Design**
+  - Create tables and relationships in PostgreSQL.
+  - Acceptance Criteria: Database schema supports all required operations without redundancy.
 
-- **Step 4: Develop User Interface**
-  - Build React components for user interaction.
-  - Acceptance Criteria: UI components render correctly and interact with the backend.
+- **Step 4: Authentication Integration**
+  - Implement OAuth 2.0 authentication flow.
+  - Acceptance Criteria: Users can authenticate and receive valid tokens.
 
-- **Step 5: Integrate Authentication Service**
-  - Implement OAuth 2.0 flow in the backend.
-  - Acceptance Criteria: Users can authenticate and receive tokens.
-
-- **Step 6: Implement Notification Service**
+- **Step 5: Notification Service Integration**
   - Integrate with Twilio and SendGrid for notifications.
-  - Acceptance Criteria: Notifications are sent successfully upon triggering events.
+  - Acceptance Criteria: Notifications are sent successfully based on triggers.
 
 4. Technical Considerations
 - **Performance Requirements:**
-  - Backend should handle up to 1000 concurrent requests.
-  - Database queries should execute within 200ms.
+  - The system should handle up to 1000 concurrent users with response times under 200ms for API calls.
 
 - **Security Considerations:**
   - Use HTTPS for all communications.
-  - Store passwords as hashed values using bcrypt.
+  - Store passwords securely using bcrypt hashing.
   - Implement input sanitization to prevent SQL injection and XSS attacks.
 
 - **Scalability Aspects:**
-  - Design the system to be horizontally scalable by adding more instances of the backend service.
-  - Use a load balancer to distribute traffic evenly across backend instances.
+  - Design the backend to be stateless to facilitate horizontal scaling.
+  - Use a load balancer to distribute traffic across multiple server instances.
+  - Implement database indexing to optimize query performance.
