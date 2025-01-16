@@ -1,10 +1,8 @@
 import pandas as pd
 import random
 
-# Test Data Generation for Wine Quality Dataset
-
-# Happy Path Test Data (Valid, Expected Scenarios)
-# These records represent typical, valid entries in the dataset.
+# Happy path test data (valid, expected scenarios)
+# These records represent typical, valid inputs for the wine quality dataset.
 happy_path_data = [
     # Valid record with average values
     {"fixed acidity": 7.0, "volatile acidity": 0.27, "citric acid": 0.36, "residual sugar": 20.7, "chlorides": 0.045,
@@ -17,46 +15,46 @@ happy_path_data = [
     # Valid record with low quality
     {"fixed acidity": 8.1, "volatile acidity": 0.28, "citric acid": 0.4, "residual sugar": 6.9, "chlorides": 0.05,
      "free sulfur dioxide": 30.0, "total sulfur dioxide": 97.0, "density": 0.9951, "pH": 3.26, "sulphates": 0.44,
-     "alcohol": 10.1, "quality": 5},
+     "alcohol": 10.1, "quality": 5}
 ]
 
-# Edge Case Test Data (Boundary Conditions)
-# These records test the boundaries of the dataset's valid range.
+# Edge case test data (boundary conditions)
+# These records test the boundaries of valid input ranges.
 edge_case_data = [
     # Minimum values for each feature
-    {"fixed acidity": 3.8, "volatile acidity": 0.08, "citric acid": 0.0, "residual sugar": 0.6, "chlorides": 0.009,
-     "free sulfur dioxide": 1.0, "total sulfur dioxide": 6.0, "density": 0.987, "pH": 2.72, "sulphates": 0.22,
-     "alcohol": 8.0, "quality": 3},
+    {"fixed acidity": 0.0, "volatile acidity": 0.0, "citric acid": 0.0, "residual sugar": 0.0, "chlorides": 0.0,
+     "free sulfur dioxide": 0.0, "total sulfur dioxide": 0.0, "density": 0.0, "pH": 0.0, "sulphates": 0.0,
+     "alcohol": 0.0, "quality": 0},
     # Maximum values for each feature
-    {"fixed acidity": 14.2, "volatile acidity": 1.1, "citric acid": 1.66, "residual sugar": 65.8, "chlorides": 0.346,
-     "free sulfur dioxide": 289.0, "total sulfur dioxide": 440.0, "density": 1.038, "pH": 3.82, "sulphates": 2.0,
-     "alcohol": 14.2, "quality": 9},
+    {"fixed acidity": 15.0, "volatile acidity": 1.5, "citric acid": 1.0, "residual sugar": 65.0, "chlorides": 0.611,
+     "free sulfur dioxide": 289.0, "total sulfur dioxide": 440.0, "density": 1.1, "pH": 4.0, "sulphates": 2.0,
+     "alcohol": 14.9, "quality": 10}
 ]
 
-# Error Case Test Data (Invalid Inputs)
-# These records contain invalid data to test error handling.
+# Error case test data (invalid inputs)
+# These records contain invalid inputs to test error handling.
 error_case_data = [
     # Negative values for features
-    {"fixed acidity": -1.0, "volatile acidity": -0.5, "citric acid": -0.1, "residual sugar": -2.0, "chlorides": -0.01,
+    {"fixed acidity": -1.0, "volatile acidity": -0.1, "citric acid": -0.2, "residual sugar": -1.0, "chlorides": -0.01,
      "free sulfur dioxide": -5.0, "total sulfur dioxide": -10.0, "density": -0.99, "pH": -3.0, "sulphates": -0.5,
-     "alcohol": -9.0, "quality": -1},
+     "alcohol": -8.0, "quality": -1},
     # Non-numeric values for features
     {"fixed acidity": "NaN", "volatile acidity": "NaN", "citric acid": "NaN", "residual sugar": "NaN", "chlorides": "NaN",
      "free sulfur dioxide": "NaN", "total sulfur dioxide": "NaN", "density": "NaN", "pH": "NaN", "sulphates": "NaN",
-     "alcohol": "NaN", "quality": "NaN"},
+     "alcohol": "NaN", "quality": "NaN"}
 ]
 
-# Special Character and Format Test Data
+# Special character and format test data
 # These records include special characters and unusual formats.
 special_character_data = [
     # Special characters in numeric fields
-    {"fixed acidity": "7.0$", "volatile acidity": "0.27%", "citric acid": "0.36#", "residual sugar": "20.7@", "chlorides": "0.045&",
-     "free sulfur dioxide": "45.0*", "total sulfur dioxide": "170.0^", "density": "1.001!", "pH": "3.0(", "sulphates": "0.45)",
-     "alcohol": "8.8_", "quality": "6+"},
+    {"fixed acidity": "7.0$", "volatile acidity": "0.27@", "citric acid": "0.36#", "residual sugar": "20.7%", "chlorides": "0.045^",
+     "free sulfur dioxide": "45.0&", "total sulfur dioxide": "170.0*", "density": "1.001(", "pH": "3.0)", "sulphates": "0.45_",
+     "alcohol": "8.8+", "quality": "6!"},
     # Mixed data types
     {"fixed acidity": 7.0, "volatile acidity": "0.27", "citric acid": 0.36, "residual sugar": "20.7", "chlorides": 0.045,
-     "free sulfur dioxide": "45", "total sulfur dioxide": 170.0, "density": "1.001", "pH": 3.0, "sulphates": "0.45",
-     "alcohol": 8.8, "quality": "6"},
+     "free sulfur dioxide": "45.0", "total sulfur dioxide": 170.0, "density": "1.001", "pH": 3.0, "sulphates": "0.45",
+     "alcohol": 8.8, "quality": "6"}
 ]
 
 # Combine all test data into a single list
@@ -65,6 +63,6 @@ test_data = happy_path_data + edge_case_data + error_case_data + special_charact
 # Convert test data to DataFrame
 test_df = pd.DataFrame(test_data)
 
-# Display the generated test data
+# Display the test data
 print(test_df)
 
