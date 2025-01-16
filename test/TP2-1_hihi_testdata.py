@@ -1,57 +1,66 @@
 import pandas as pd
-import numpy as np
+import random
+import string
 
-# Load the dataset
-csv_file_path = '/dbfs/FileStore/winequality-white.csv'
-df = pd.read_csv(csv_file_path)
+# Function to generate random string with special characters
+def random_string_with_special_chars(length=10):
+    chars = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(random.choice(chars) for _ in range(length))
 
-# Convert 'quality' to binary 'high_quality'
-# Assuming quality >= 7 is high quality
-df['high_quality'] = (df['quality'] >= 7).astype(int)
+# Happy path test data (valid, expected scenarios)
+# These records are expected to pass all validations and represent typical data entries.
+happy_path_data = [
+    {'fixed acidity': 7.0, 'volatile acidity': 0.27, 'citric acid': 0.36, 'residual sugar': 20.7, 'chlorides': 0.045,
+     'free sulfur dioxide': 45.0, 'total sulfur dioxide': 170.0, 'density': 1.001, 'pH': 3.0, 'sulphates': 0.45,
+     'alcohol': 8.8, 'quality': 6},
+    {'fixed acidity': 6.3, 'volatile acidity': 0.3, 'citric acid': 0.34, 'residual sugar': 1.6, 'chlorides': 0.049,
+     'free sulfur dioxide': 14.0, 'total sulfur dioxide': 132.0, 'density': 0.994, 'pH': 3.3, 'sulphates': 0.49,
+     'alcohol': 9.5, 'quality': 6},
+    # Add more happy path records as needed
+]
 
-# Split the dataset into training, validation, and test sets
-# Assuming 70% training, 15% validation, 15% test
-train_df = df.sample(frac=0.7, random_state=42)
-remaining_df = df.drop(train_df.index)
-validation_df = remaining_df.sample(frac=0.5, random_state=42)
-test_df = remaining_df.drop(validation_df.index)
+# Edge case test data (boundary conditions)
+# These records test the boundaries of valid input ranges.
+edge_case_data = [
+    {'fixed acidity': 4.0, 'volatile acidity': 0.12, 'citric acid': 0.0, 'residual sugar': 0.6, 'chlorides': 0.009,
+     'free sulfur dioxide': 1.0, 'total sulfur dioxide': 6.0, 'density': 0.987, 'pH': 2.72, 'sulphates': 0.22,
+     'alcohol': 8.0, 'quality': 3},  # Minimum values
+    {'fixed acidity': 15.9, 'volatile acidity': 1.58, 'citric acid': 1.66, 'residual sugar': 65.8, 'chlorides': 0.611,
+     'free sulfur dioxide': 289.0, 'total sulfur dioxide': 440.0, 'density': 1.038, 'pH': 3.82, 'sulphates': 2.0,
+     'alcohol': 14.2, 'quality': 9},  # Maximum values
+    # Add more edge case records as needed
+]
 
-# Generate test data
-def generate_test_data(df, num_records):
-    test_data = []
-    for _ in range(num_records):
-        record = {
-            'fixed_acidity': np.random.uniform(df['fixed acidity'].min(), df['fixed acidity'].max()),
-            'volatile_acidity': np.random.uniform(df['volatile acidity'].min(), df['volatile acidity'].max()),
-            'citric_acid': np.random.uniform(df['citric acid'].min(), df['citric acid'].max()),
-            'residual_sugar': np.random.uniform(df['residual sugar'].min(), df['residual sugar'].max()),
-            'chlorides': np.random.uniform(df['chlorides'].min(), df['chlorides'].max()),
-            'free_sulfur_dioxide': np.random.uniform(df['free sulfur dioxide'].min(), df['free sulfur dioxide'].max()),
-            'total_sulfur_dioxide': np.random.uniform(df['total sulfur dioxide'].min(), df['total sulfur dioxide'].max()),
-            'density': np.random.uniform(df['density'].min(), df['density'].max()),
-            'pH': np.random.uniform(df['pH'].min(), df['pH'].max()),
-            'sulphates': np.random.uniform(df['sulphates'].min(), df['sulphates'].max()),
-            'alcohol': np.random.uniform(df['alcohol'].min(), df['alcohol'].max()),
-            'high_quality': np.random.choice([0, 1])  # Randomly assign high_quality
-        }
-        test_data.append(record)
-    return pd.DataFrame(test_data)
+# Error case test data (invalid inputs)
+# These records are expected to fail validation checks.
+error_case_data = [
+    {'fixed acidity': -1.0, 'volatile acidity': 0.27, 'citric acid': 0.36, 'residual sugar': 20.7, 'chlorides': 0.045,
+     'free sulfur dioxide': 45.0, 'total sulfur dioxide': 170.0, 'density': 1.001, 'pH': 3.0, 'sulphates': 0.45,
+     'alcohol': 8.8, 'quality': 6},  # Negative fixed acidity
+    {'fixed acidity': 7.0, 'volatile acidity': 0.27, 'citric acid': 0.36, 'residual sugar': 20.7, 'chlorides': 0.045,
+     'free sulfur dioxide': 45.0, 'total sulfur dioxide': 170.0, 'density': 1.001, 'pH': 3.0, 'sulphates': 0.45,
+     'alcohol': 8.8, 'quality': 11},  # Quality out of range
+    # Add more error case records as needed
+]
 
-# Generate 20-30 records for each condition
-# Validate data preprocessing: binary conversion of 'quality'
-test_data_preprocessing = generate_test_data(df, 25)
+# Special character and format test data
+# These records test the handling of special characters and unusual formats.
+special_char_data = [
+    {'fixed acidity': 7.0, 'volatile acidity': 0.27, 'citric acid': 0.36, 'residual sugar': 20.7, 'chlorides': 0.045,
+     'free sulfur dioxide': 45.0, 'total sulfur dioxide': 170.0, 'density': 1.001, 'pH': 3.0, 'sulphates': 0.45,
+     'alcohol': 8.8, 'quality': random_string_with_special_chars()},  # Quality with special characters
+    {'fixed acidity': '7.0', 'volatile acidity': '0.27', 'citric acid': '0.36', 'residual sugar': '20.7',
+     'chlorides': '0.045', 'free sulfur dioxide': '45.0', 'total sulfur dioxide': '170.0', 'density': '1.001',
+     'pH': '3.0', 'sulphates': '0.45', 'alcohol': '8.8', 'quality': '6'},  # All fields as strings
+    # Add more special character records as needed
+]
 
-# Validate training data split
-test_data_training_split = generate_test_data(train_df, 25)
+# Combine all test data into a single list
+test_data = happy_path_data + edge_case_data + error_case_data + special_char_data
 
-# Validate validation data split
-test_data_validation_split = generate_test_data(validation_df, 25)
+# Convert test data to DataFrame for further processing
+test_df = pd.DataFrame(test_data)
 
-# Validate test data split
-test_data_test_split = generate_test_data(test_df, 25)
+# Display the generated test data
+print(test_df)
 
-# Print sample test data
-print(test_data_preprocessing.head())
-print(test_data_training_split.head())
-print(test_data_validation_split.head())
-print(test_data_test_split.head())
