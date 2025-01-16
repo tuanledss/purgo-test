@@ -1,80 +1,73 @@
 import unittest
-import json
-from my_module import MySystem  # Replace with actual module and class names
+import requests
+from unittest.mock import patch
 
-class TestMySystem(unittest.TestCase):
+class TestUserAPI(unittest.TestCase):
+
+    BASE_URL = "http://localhost:5000/api/users"
 
     def setUp(self):
-        # Setup code to initialize the system or any dependencies
-        self.system = MySystem()
-
-    def tearDown(self):
-        # Teardown code to clean up after tests
+        # Setup code if needed
         pass
 
-    # Test happy path scenarios
-    def test_valid_user_data(self):
-        # Test valid user data scenarios
-        happy_path_data = [
-            {"username": "user123", "password": "Passw0rd!", "email": "user123@example.com"},
-            {"username": "johnDoe", "password": "Secure1@", "email": "john.doe@example.com"},
-            {"username": "alice2023", "password": "Alice@2023", "email": "alice@example.com"},
-        ]
+    def tearDown(self):
+        # Teardown code if needed
+        pass
+
+    # Happy Path Tests
+    def test_create_user_valid_data(self):
+        """Test creating a user with valid data"""
         for data in happy_path_data:
-            with self.subTest(data=data):
-                result = self.system.process_user_data(data)
-                self.assertTrue(result['success'])
-                self.assertEqual(result['message'], "User data processed successfully")
+            response = requests.post(self.BASE_URL, json=data)
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(response.json().get('email'), data['email'])
 
-    # Test edge case scenarios
-    def test_edge_case_user_data(self):
-        # Test edge case scenarios for user data
-        edge_case_data = [
-            {"username": "user1", "password": "Valid1@", "email": "user1@example.com"},
-            {"username": "user1234567890", "password": "Valid1@", "email": "user1234567890@example.com"},
-            {"username": "edgeUser", "password": "Pass1@", "email": "edge@example.com"},
-        ]
+    # Edge Case Tests
+    def test_create_user_edge_cases(self):
+        """Test creating a user with edge case data"""
         for data in edge_case_data:
-            with self.subTest(data=data):
-                result = self.system.process_user_data(data)
-                self.assertTrue(result['success'])
-                self.assertEqual(result['message'], "User data processed successfully")
+            response = requests.post(self.BASE_URL, json=data)
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(response.json().get('name'), data['name'])
 
-    # Test error case scenarios
-    def test_error_case_user_data(self):
-        # Test invalid user data scenarios
-        error_case_data = [
-            {"username": "usr", "password": "Valid1@", "email": "usr@example.com"},
-            {"username": "user1234567890123", "password": "Valid1@", "email": "user1234567890123@example.com"},
-            {"username": "invalidUser", "password": "Password1", "email": "invalid@example.com"},
-            {"username": "invalidEmail", "password": "Valid1@", "email": "invalidemail.com"},
-        ]
-        for data in error_case_data:
-            with self.subTest(data=data):
-                result = self.system.process_user_data(data)
-                self.assertFalse(result['success'])
-                self.assertIn("error", result['message'])
+    # Error Case Tests
+    def test_create_user_invalid_email(self):
+        """Test creating a user with invalid email format"""
+        data = error_case_data[0]
+        response = requests.post(self.BASE_URL, json=data)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Invalid email format', response.text)
 
-    # Test special character and format scenarios
-    def test_special_character_user_data(self):
-        # Test special character scenarios in user data
-        special_char_data = [
-            {"username": "user!@#", "password": "Valid1@", "email": "user!@#@example.com"},
-            {"username": "specialUser", "password": "P@ssw0rd!#", "email": "special@example.com"},
-            {"username": "subdomainUser", "password": "Valid1@", "email": "user@sub.example.com"},
-        ]
+    def test_create_user_invalid_phone_number(self):
+        """Test creating a user with invalid phone number format"""
+        data = error_case_data[1]
+        response = requests.post(self.BASE_URL, json=data)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Invalid phone number format', response.text)
+
+    def test_create_user_missing_fields(self):
+        """Test creating a user with missing required fields"""
+        data = error_case_data[2]
+        response = requests.post(self.BASE_URL, json=data)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Missing required fields', response.text)
+
+    # Special Character Tests
+    def test_create_user_special_characters(self):
+        """Test creating a user with special characters in name and email"""
         for data in special_char_data:
-            with self.subTest(data=data):
-                result = self.system.process_user_data(data)
-                self.assertTrue(result['success'])
-                self.assertEqual(result['message'], "User data processed successfully")
+            response = requests.post(self.BASE_URL, json=data)
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(response.json().get('name'), data['name'])
 
-    # Test error handling and exceptions
-    def test_error_handling(self):
-        # Test system's error handling capabilities
-        invalid_data = {"username": "", "password": "", "email": ""}
-        with self.assertRaises(ValueError):
-            self.system.process_user_data(invalid_data)
+    # Exception Handling Tests
+    @patch('requests.post')
+    def test_create_user_server_error(self, mock_post):
+        """Test server error handling when creating a user"""
+        mock_post.side_effect = requests.exceptions.RequestException
+        data = happy_path_data[0]
+        with self.assertRaises(requests.exceptions.RequestException):
+            requests.post(self.BASE_URL, json=data)
 
 if __name__ == '__main__':
     unittest.main()
