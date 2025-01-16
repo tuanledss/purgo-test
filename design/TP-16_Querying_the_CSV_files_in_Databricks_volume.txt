@@ -1,0 +1,78 @@
+
+#### 1. Component Architecture
+
+- **Major Components and Interactions:**
+  - **CSV Data Source:** The CSV file located at `/Volumes/purgo_databricks/purgo_playground/d_product_revenue_csv/d_product_revenue.csv`.
+  - **Databricks SQL Engine:** Used to execute SQL queries for data extraction, transformation, and loading (ETL).
+  - **Target Table:** `d_product_revenue_file_bien_test` in the Unity Catalog at `purgo_databricks.purgo_playground`.
+  - **Permissions Management:** Granting `SELECT AND MODIFY` permissions to `bien.luong@dssolution.com`.
+
+- **Input/Output Interfaces:**
+  - **Input:** CSV file from the specified volume path.
+  - **Output:** SQL table `d_product_revenue_file_bien_test` with data loaded from the CSV.
+
+- **Dependencies and External Systems:**
+  - **Databricks Environment:** Requires access to Databricks for executing SQL queries.
+  - **Unity Catalog:** For managing and registering the table.
+  - **User Authentication:** Necessary for granting permissions.
+
+#### 2. Data Flow
+
+- **Data Transformation Steps:**
+  1. Load CSV data into a temporary staging area.
+  2. Create a table `d_product_revenue_file_bien_test` using the schema inferred from the CSV.
+  3. Insert data from the staging area into the target table.
+
+- **Data Formats and Schemas:**
+  - **CSV Format:** Assumed to have headers; schema inferred during loading.
+  - **Table Schema:** Automatically inferred from the CSV headers and data types.
+
+- **Validation Rules and Error Handling:**
+  - **Row Count Validation:** Ensure the number of rows in the CSV matches the number of rows in the table.
+  - **Error Handling:** Log discrepancies in row counts and notify the administrator. Retry loading if necessary.
+
+#### 3. Implementation Steps
+
+1. **Load CSV Data:**
+   - Use Databricks SQL to read the CSV file into a DataFrame.
+   - Example: `df = spark.read.csv('/Volumes/purgo_databricks/purgo_playground/d_product_revenue_csv/d_product_revenue.csv', header=True)`
+
+2. **Create Table:**
+   - Create the table `d_product_revenue_file_bien_test` using the schema from the DataFrame.
+   - Example SQL: 
+     
+     CREATE TABLE purgo_databricks.purgo_playground.d_product_revenue_file_bien_test AS SELECT * FROM df
+     
+
+3. **Verify Row Count:**
+   - Compare the row count of the DataFrame and the created table.
+   - Example: 
+     
+     csv_row_count = df.count()
+     table_row_count = spark.sql("SELECT COUNT(*) FROM purgo_databricks.purgo_playground.d_product_revenue_file_bien_test").collect()[0][0]
+     assert csv_row_count == table_row_count, "Row count mismatch"
+     
+
+4. **Grant Permissions:**
+   - Grant `SELECT AND MODIFY` permissions to `bien.luong@dssolution.com`.
+   - Example SQL:
+     
+     GRANT SELECT, MODIFY ON TABLE purgo_databricks.purgo_playground.d_product_revenue_file_bien_test TO 'bien.luong@dssolution.com'
+     
+
+- **Acceptance Criteria:**
+  - Successful creation of the table with matching row counts.
+  - Permissions correctly granted to the specified user.
+
+#### 4. Technical Considerations
+
+- **Performance Requirements:**
+  - Ensure efficient loading and querying of data by optimizing the SQL queries and using appropriate indexing if necessary.
+
+- **Security Considerations:**
+  - Ensure that only authorized users have access to the data and that permissions are correctly set.
+  - Use secure connections and authentication methods for accessing Databricks.
+
+- **Scalability Aspects:**
+  - Design the solution to handle increasing data volumes by leveraging Databricks' scalable architecture.
+  - Consider partitioning the table if the dataset grows significantly.
