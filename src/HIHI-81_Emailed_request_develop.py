@@ -4,7 +4,7 @@ import bcrypt
 import json
 import requests
 from flask import Flask, request, jsonify
-from sqlalchemy import create_engine, Column, String, Integer
+from sqlalchemy import create_engine, Column, Integer, String, Sequence
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -15,16 +15,16 @@ logger = logging.getLogger(__name__)
 # Database setup
 DATABASE_URL = "postgresql://user:password@localhost/mydatabase"
 engine = create_engine(DATABASE_URL)
-Session = sessionmaker(bind=engine)
 Base = declarative_base()
+Session = sessionmaker(bind=engine)
 
-# Database models
+# Define User model
 class User(Base):
     __tablename__ = 'users'
-    id = Column(Integer, primary_key=True)
-    username = Column(String, unique=True, nullable=False)
-    password = Column(String, nullable=False)
-    email = Column(String, unique=True, nullable=False)
+    id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
+    username = Column(String(15), unique=True, nullable=False)
+    password = Column(String(60), nullable=False)
+    email = Column(String(50), unique=True, nullable=False)
 
 Base.metadata.create_all(engine)
 
@@ -41,7 +41,7 @@ def validate_user_data(data):
         raise ValueError("Invalid email")
 
 def hash_password(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def authenticate_user(username, password):
     session = Session()
@@ -54,6 +54,7 @@ def authenticate_user(username, password):
 def send_notification(email, message):
     # Placeholder for sending email via SMTP or SMS via Twilio
     logger.info(f"Sending notification to {email}: {message}")
+    return True
 
 # API endpoints
 @app.route('/register', methods=['POST'])
@@ -61,10 +62,10 @@ def register():
     try:
         data = request.json
         validate_user_data(data)
-        hashed_password = hash_password(data['password'])
+        data['password'] = hash_password(data['password'])
         session = Session()
-        new_user = User(username=data['username'], password=hashed_password, email=data['email'])
-        session.add(new_user)
+        user = User(**data)
+        session.add(user)
         session.commit()
         session.close()
         send_notification(data['email'], "Registration successful")
@@ -81,9 +82,7 @@ def login():
     try:
         data = request.json
         if authenticate_user(data['username'], data['password']):
-            # Simulate token generation
-            token = "fake-jwt-token"
-            return jsonify({"success": True, "token": token}), 200
+            return jsonify({"success": True, "message": "Login successful"}), 200
         else:
             return jsonify({"success": False, "message": "Invalid credentials"}), 401
     except Exception as e:
