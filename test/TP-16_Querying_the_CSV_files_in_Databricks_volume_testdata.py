@@ -1,53 +1,102 @@
 import random
 import string
-import pandas as pd
+import datetime
 
 # Happy Path Test Data
-# These records represent valid and expected scenarios
+# Valid scenarios with expected inputs
 happy_path_data = [
-    {"product_id": 1, "product_name": "Widget A", "revenue": 1000.00, "currency": "USD"},
-    {"product_id": 2, "product_name": "Widget B", "revenue": 1500.50, "currency": "USD"},
-    {"product_id": 3, "product_name": "Widget C", "revenue": 2000.75, "currency": "USD"},
-    {"product_id": 4, "product_name": "Widget D", "revenue": 2500.00, "currency": "USD"},
-    {"product_id": 5, "product_name": "Widget E", "revenue": 3000.25, "currency": "USD"},
+    {
+        "product_id": "P001",
+        "revenue": 1000.00,
+        "date": "2023-01-01"
+    },
+    {
+        "product_id": "P002",
+        "revenue": 1500.50,
+        "date": "2023-02-15"
+    },
+    {
+        "product_id": "P003",
+        "revenue": 2000.75,
+        "date": "2023-03-20"
+    }
 ]
 
 # Edge Case Test Data
-# These records test boundary conditions
+# Boundary conditions such as minimum and maximum values
 edge_case_data = [
-    {"product_id": 0, "product_name": "Widget F", "revenue": 0.00, "currency": "USD"},  # Minimum values
-    {"product_id": 999999, "product_name": "Widget G", "revenue": 999999.99, "currency": "USD"},  # Maximum values
-    {"product_id": 6, "product_name": "Widget H", "revenue": 0.01, "currency": "USD"},  # Smallest non-zero revenue
-    {"product_id": 7, "product_name": "Widget I", "revenue": 999999.98, "currency": "USD"},  # Just below max revenue
+    {
+        "product_id": "P004",
+        "revenue": 0.00,  # Minimum revenue
+        "date": "2023-01-01"
+    },
+    {
+        "product_id": "P005",
+        "revenue": 9999999.99,  # Maximum revenue
+        "date": "2023-12-31"
+    }
 ]
 
 # Error Case Test Data
-# These records test invalid inputs
+# Invalid inputs to test error handling
 error_case_data = [
-    {"product_id": -1, "product_name": "Widget J", "revenue": 100.00, "currency": "USD"},  # Negative product_id
-    {"product_id": 8, "product_name": "Widget K", "revenue": -100.00, "currency": "USD"},  # Negative revenue
-    {"product_id": 9, "product_name": "", "revenue": 500.00, "currency": "USD"},  # Empty product name
-    {"product_id": 10, "product_name": "Widget L", "revenue": 100.00, "currency": "XYZ"},  # Invalid currency
+    {
+        "product_id": "",  # Empty product_id
+        "revenue": 500.00,
+        "date": "2023-04-01"
+    },
+    {
+        "product_id": "P006",
+        "revenue": -100.00,  # Negative revenue
+        "date": "2023-05-01"
+    },
+    {
+        "product_id": "P007",
+        "revenue": 100.00,
+        "date": "2023-02-30"  # Invalid date
+    }
 ]
 
 # Special Character and Format Test Data
-# These records test special characters and formats
+# Inputs with special characters and different formats
 special_character_data = [
-    {"product_id": 11, "product_name": "Widget M", "revenue": 100.00, "currency": "USD"},
-    {"product_id": 12, "product_name": "Widget N", "revenue": 100.00, "currency": "USD"},
-    {"product_id": 13, "product_name": "Widget O", "revenue": 100.00, "currency": "USD"},
-    {"product_id": 14, "product_name": "Widget P", "revenue": 100.00, "currency": "USD"},
-    {"product_id": 15, "product_name": "Widget Q", "revenue": 100.00, "currency": "USD"},
+    {
+        "product_id": "P@008",
+        "revenue": 750.00,
+        "date": "2023-06-01"
+    },
+    {
+        "product_id": "P009",
+        "revenue": 1250.00,
+        "date": "01-07-2023"  # Different date format
+    },
+    {
+        "product_id": "P010",
+        "revenue": 500.00,
+        "date": "2023/08/01"  # Different date separator
+    }
 ]
 
-# Combine all test data into a single list
-all_test_data = happy_path_data + edge_case_data + error_case_data + special_character_data
+# Function to generate random test data
+def generate_random_test_data(num_records):
+    random_data = []
+    for _ in range(num_records):
+        product_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+        revenue = round(random.uniform(0, 10000), 2)
+        date = datetime.date.today() - datetime.timedelta(days=random.randint(0, 365))
+        random_data.append({
+            "product_id": product_id,
+            "revenue": revenue,
+            "date": date.strftime("%Y-%m-%d")
+        })
+    return random_data
 
-# Convert to DataFrame for easy manipulation and export
-df = pd.DataFrame(all_test_data)
+# Generate additional random test data
+random_test_data = generate_random_test_data(10)
 
-# Output the test data to a CSV file
-df.to_csv('test_data.csv', index=False)
+# Combine all test data
+all_test_data = happy_path_data + edge_case_data + error_case_data + special_character_data + random_test_data
 
-
-This code generates a set of test data records across different categories, including happy path, edge cases, error cases, and special character scenarios. Each record is structured to test specific conditions and validation rules. The data is then combined into a single DataFrame and exported to a CSV file for use in testing.
+# Print all test data
+for record in all_test_data:
+    print(record)
