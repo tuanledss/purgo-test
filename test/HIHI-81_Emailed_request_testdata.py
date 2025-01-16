@@ -25,42 +25,41 @@ happy_path_data = [
 
 # Edge case test data (boundary conditions)
 edge_case_data = [
-    # Username at boundary length
-    {"username": "user1", "password": "Passw0rd!", "email": "user1@example.com"},  # Min length
-    {"username": "user1234567890", "password": "Passw0rd!", "email": "user1234567890@example.com"},  # Max length
-    # Password at boundary length
-    {"username": "edgeUser", "password": "P@ssw0r", "email": "edge@example.com"},  # Min length
+    # Username at minimum length
+    {"username": "user1", "password": "Valid1@", "email": "user1@example.com"},
+    # Username at maximum length
+    {"username": "user1234567890", "password": "Valid1@", "email": "user1234567890@example.com"},
+    # Password at minimum length
+    {"username": "edgeUser", "password": "Pass1@", "email": "edge@example.com"},
 ]
 
 # Error case test data (invalid inputs)
 error_case_data = [
-    # Invalid username
-    {"username": "us", "password": "Passw0rd!", "email": "us@example.com"},  # Too short
-    {"username": "user12345678901", "password": "Passw0rd!", "email": "user12345678901@example.com"},  # Too long
-    # Invalid password
-    {"username": "user123", "password": "password", "email": "user123@example.com"},  # No special char or number
-    {"username": "user123", "password": "12345678", "email": "user123@example.com"},  # No letter
-    # Invalid email
-    {"username": "user123", "password": "Passw0rd!", "email": "user123example.com"},  # Missing '@'
-    {"username": "user123", "password": "Passw0rd!", "email": "user123@.com"},  # Missing domain
+    # Invalid username (too short)
+    {"username": "usr", "password": "Valid1@", "email": "usr@example.com"},
+    # Invalid username (too long)
+    {"username": "user1234567890123", "password": "Valid1@", "email": "user1234567890123@example.com"},
+    # Invalid password (no special character)
+    {"username": "invalidUser", "password": "Password1", "email": "invalid@example.com"},
+    # Invalid email format
+    {"username": "invalidEmail", "password": "Valid1@", "email": "invalidemail.com"},
 ]
 
 # Special character and format test data
 special_char_data = [
-    # Special characters in username
-    {"username": "user!@#", "password": "Passw0rd!", "email": "user!@#@example.com"},
-    # Special characters in email
-    {"username": "user123", "password": "Passw0rd!", "email": "user123@ex!ample.com"},
-    # Special characters in password
-    {"username": "user123", "password": "P@ssw0rd!@#", "email": "user123@example.com"},
+    # Username with special characters
+    {"username": "user!@#", "password": "Valid1@", "email": "user!@#@example.com"},
+    # Password with multiple special characters
+    {"username": "specialUser", "password": "P@ssw0rd!#", "email": "special@example.com"},
+    # Email with subdomain
+    {"username": "subdomainUser", "password": "Valid1@", "email": "user@sub.example.com"},
 ]
 
 # Combine all test data
 all_test_data = happy_path_data + edge_case_data + error_case_data + special_char_data
 
-# Output test data
-for i, data in enumerate(all_test_data, start=1):
-    print(f"Test Case {i}: {json.dumps(data)}")
+# Output test data as JSON
+print(json.dumps(all_test_data, indent=2))
 
 
-This code generates test data for a system with user authentication and validation rules. It covers happy path scenarios, edge cases, error cases, and special character scenarios, ensuring comprehensive test coverage.
+This code generates test data for a system with user authentication and validation rules. It includes happy path scenarios, edge cases, error cases, and special character scenarios, ensuring comprehensive coverage of the specified requirements.
