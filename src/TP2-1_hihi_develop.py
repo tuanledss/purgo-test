@@ -1,65 +1,94 @@
 import pandas as pd
-import numpy as np
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import mlflow
 import mlflow.sklearn
-from sklearn.model_selection import train_test_split
 import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load the dataset
-csv_file_path = '/dbfs/FileStore/winequality-white.csv'
-df = pd.read_csv(csv_file_path)
+# Load data
+def load_data(file_path):
+    try:
+        df = pd.read_csv(file_path)
+        logger.info("Data loaded successfully.")
+        return df
+    except Exception as e:
+        logger.error(f"Error loading data: {e}")
+        raise
 
-# Convert 'quality' to binary 'high_quality'
-df['high_quality'] = (df['quality'] >= 7).astype(int)
+# Preprocess data
+def preprocess_data(df):
+    try:
+        df['high_quality'] = df['quality'].apply(lambda x: 1 if x >= 7 else 0)
+        df = df.drop(columns=['quality'])
+        logger.info("Data preprocessed successfully.")
+        return df
+    except Exception as e:
+        logger.error(f"Error in data preprocessing: {e}")
+        raise
 
-# Split the dataset into training, validation, and test sets
-train_df, temp_df = train_test_split(df, test_size=0.3, random_state=42)
-validation_df, test_df = train_test_split(temp_df, test_size=0.5, random_state=42)
+# Train model
+def train_model(X_train, y_train):
+    try:
+        model = RandomForestClassifier()
+        model.fit(X_train, y_train)
+        logger.info("Model trained successfully.")
+        return model
+    except Exception as e:
+        logger.error(f"Error in model training: {e}")
+        raise
 
-# Features and labels
-features = df.columns.drop(['quality', 'high_quality'])
-X_train = train_df[features]
-y_train = train_df['high_quality']
-X_validation = validation_df[features]
-y_validation = validation_df['high_quality']
-X_test = test_df[features]
-y_test = test_df['high_quality']
+# Evaluate model
+def evaluate_model(model, X_test, y_test):
+    try:
+        predictions = model.predict(X_test)
+        accuracy = accuracy_score(y_test, predictions)
+        logger.info(f"Model accuracy: {accuracy}")
+        return accuracy
+    except Exception as e:
+        logger.error(f"Error in model evaluation: {e}")
+        raise
 
-# Train the Random Forest model
-model = RandomForestClassifier(random_state=42)
-model.fit(X_train, y_train)
+# Main pipeline
+def main_pipeline(file_path):
+    try:
+        # Load and preprocess data
+        df = load_data(file_path)
+        df = preprocess_data(df)
+        X = df.drop(columns=['high_quality'])
+        y = df['high_quality']
+        
+        # Split data
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+        
+        # Train model
+        model = train_model(X_train, y_train)
+        
+        # Evaluate model
+        accuracy = evaluate_model(model, X_test, y_test)
+        
+        # Log experiment with MLflow
+        with mlflow.start_run():
+            mlflow.log_param("model_type", "RandomForest")
+            mlflow.log_metric("accuracy", accuracy)
+            mlflow.sklearn.log_model(model, "model")
+            logger.info("Experiment logged in MLflow.")
+        
+        # Check acceptance criteria
+        if accuracy >= 0.8:
+            logger.info("Model meets the acceptance criteria.")
+        else:
+            logger.warning("Model does not meet the acceptance criteria.")
+        
+    except Exception as e:
+        logger.error(f"Error in main pipeline: {e}")
+        raise
 
-# Validate the model
-validation_predictions = model.predict(X_validation)
-validation_accuracy = accuracy_score(y_validation, validation_predictions)
-logger.info(f"Validation Accuracy: {validation_accuracy}")
-
-# Test the model
-test_predictions = model.predict(X_test)
-test_accuracy = accuracy_score(y_test, test_predictions)
-logger.info(f"Test Accuracy: {test_accuracy}")
-
-# Check if the model meets the acceptance criteria
-if test_accuracy >= 0.8:
-    logger.info("Model meets the acceptance criteria.")
-else:
-    logger.error("Model does not meet the acceptance criteria.")
-
-# Log the experiment in MLflow
-with mlflow.start_run():
-    mlflow.sklearn.log_model(model, "model")
-    mlflow.log_metric("validation_accuracy", validation_accuracy)
-    mlflow.log_metric("test_accuracy", test_accuracy)
-    mlflow.log_params(model.get_params())
-
-    # Register the model if it meets the acceptance criteria
-    if test_accuracy >= 0.8:
-        mlflow.register_model("runs:/{}/model".format(mlflow.active_run().info.run_id), "WineQualityModel")
-
-logger.info("Pipeline execution completed.")
+# Run the pipeline
+if __name__ == "__main__":
+    file_path = '/dbfs/FileStore/winequality-white.csv'
+    main_pipeline(file_path)
