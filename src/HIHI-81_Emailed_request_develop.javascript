@@ -1,100 +1,83 @@
-// server.js
+// Import necessary modules
 const express = require('express');
-const bodyParser = require('body-parser');
-const { processRequest } = require('./services/requestService');
-const { validateInput } = require('./middleware/validation');
+const axios = require('axios');
+const { Pool } = require('pg');
+const { v4: uuidv4 } = require('uuid');
+const jwt = require('jsonwebtoken');
+const winston = require('winston');
+
+// Initialize Express app
 const app = express();
+app.use(express.json());
 
-app.use(bodyParser.json());
+// Configure PostgreSQL connection
+const pool = new Pool({
+  user: 'your_db_user',
+  host: 'localhost',
+  database: 'your_db_name',
+  password: 'your_db_password',
+  port: 5432,
+});
 
-app.post('/api/request', validateInput, async (req, res) => {
+// Configure logger
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'app.log' }),
+  ],
+});
+
+// Middleware for JWT authentication
+const authenticateJWT = (req, res, next) => {
+  const token = req.header('Authorization');
+  if (!token) return res.status(401).send({ error: 'Access denied' });
+
   try {
-    const response = await processRequest(req.body);
-    res.status(200).json(response);
+    const verified = jwt.verify(token, 'your_jwt_secret');
+    req.user = verified;
+    next();
+  } catch (err) {
+    res.status(400).send({ error: 'Invalid token' });
+  }
+};
+
+// Input validation
+const validateInput = (data) => {
+  if (!data.userId || !uuidv4().test(data.userId)) {
+    throw new Error('Invalid userId format');
+  }
+  if (!data.action || !['fetchData', 'updateData', 'deleteData', 'createData'].includes(data.action.toLowerCase())) {
+    throw new Error('Invalid action');
+  }
+};
+
+// API endpoint
+app.post('/api/data', authenticateJWT, async (req, res) => {
+  try {
+    validateInput(req.body);
+    const { userId, action } = req.body;
+
+    // Database query
+    const dbResponse = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+    if (dbResponse.rows.length === 0) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    // External API call
+    const apiResponse = await axios.get(`https://external.api/data?userId=${userId}`);
+    const combinedData = { ...dbResponse.rows[0], externalData: apiResponse.data };
+
+    res.send({ status: 'success', data: combinedData });
   } catch (error) {
-    console.error('Error processing request:', error);
-    res.status(500).json({ status: 'error', message: 'Internal server error' });
+    logger.error(error.message);
+    res.status(400).send({ status: 'error', message: error.message });
   }
 });
 
+// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info(`Server running on port ${PORT}`);
 });
-
-// middleware/validation.js
-const { isUUID, isValidAction } = require('../utils/validators');
-
-function validateInput(req, res, next) {
-  const { userId, action } = req.body;
-  if (!userId || !isUUID(userId)) {
-    return res.status(400).json({ status: 'error', message: 'Invalid userId format' });
-  }
-  if (!action || !isValidAction(action)) {
-    return res.status(400).json({ status: 'error', message: 'Invalid action' });
-  }
-  next();
-}
-
-module.exports = { validateInput };
-
-// services/requestService.js
-const axios = require('axios');
-const { queryDatabase } = require('../database/db');
-const { transformData } = require('../utils/transformers');
-
-async function processRequest(data) {
-  const { userId, action } = data;
-  const dbData = await queryDatabase(userId, action);
-  const transformedData = transformData(dbData);
-
-  if (action === 'fetchData') {
-    const externalData = await axios.get(`https://external.api/data?userId=${userId}`);
-    return { status: 'success', data: { ...transformedData, external: externalData.data } };
-  }
-
-  return { status: 'success', data: transformedData };
-}
-
-module.exports = { processRequest };
-
-// database/db.js
-const { Pool } = require('pg');
-const pool = new Pool();
-
-async function queryDatabase(userId, action) {
-  try {
-    const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-    return result.rows[0];
-  } catch (error) {
-    console.error('Database query error:', error);
-    throw new Error('Database query failed');
-  }
-}
-
-module.exports = { queryDatabase };
-
-// utils/validators.js
-function isUUID(value) {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(value);
-}
-
-function isValidAction(action) {
-  const validActions = ['fetchData', 'updateData', 'deleteData', 'createData'];
-  return validActions.includes(action.toLowerCase());
-}
-
-module.exports = { isUUID, isValidAction };
-
-// utils/transformers.js
-function transformData(data) {
-  // Example transformation logic
-  return {
-    id: data.id,
-    name: data.name.toUpperCase(),
-    email: data.email.toLowerCase(),
-  };
-}
-
-module.exports = { transformData };
