@@ -1,54 +1,66 @@
 import random
 import string
-import hashlib
+import json
+from datetime import datetime, timedelta
 
 # Helper functions
-def generate_username(length=8):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+def random_string(length):
+    return ''.join(random.choices(string.ascii_letters, k=length))
 
-def generate_password(length=8):
+def random_email():
+    return f"{random_string(5)}@{random_string(3)}.com"
+
+def random_password(length=8):
     return ''.join(random.choices(string.ascii_letters + string.digits + string.punctuation, k=length))
 
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+def random_timestamp():
+    return (datetime.now() - timedelta(days=random.randint(0, 365))).isoformat()
 
-# Happy Path Test Data
-# Valid usernames and passwords
+# Test Data Categories
+
+# Happy path test data (valid, expected scenarios)
 happy_path_data = [
-    {"username": generate_username(), "password": generate_password(10)},
-    {"username": generate_username(), "password": generate_password(12)},
-    {"username": generate_username(), "password": generate_password(15)},
+    # Valid user data
+    {"userId": 1, "name": "John Doe", "email": "john.doe@example.com", "password": "SecurePass123!"},
+    {"userId": 2, "name": "Jane Smith", "email": "jane.smith@example.com", "password": "AnotherPass456@"},
+    # Valid processed data
+    {"transactionId": 101, "status": "completed", "timestamp": random_timestamp()},
+    {"transactionId": 102, "status": "pending", "timestamp": random_timestamp()},
 ]
 
-# Edge Case Test Data
-# Boundary conditions for password length
+# Edge case test data (boundary conditions)
 edge_case_data = [
-    {"username": generate_username(), "password": generate_password(8)},  # Minimum valid length
-    {"username": generate_username(), "password": generate_password(50)}, # Arbitrary long password
+    # Minimum length password
+    {"userId": 3, "name": "Edge Case", "email": "edge.case@example.com", "password": random_password(8)},
+    # Maximum length name
+    {"userId": 4, "name": random_string(255), "email": "max.name@example.com", "password": "MaxNamePass789#"},
+    # Future timestamp
+    {"transactionId": 103, "status": "scheduled", "timestamp": (datetime.now() + timedelta(days=1)).isoformat()},
 ]
 
-# Error Case Test Data
-# Invalid inputs such as empty fields and short passwords
+# Error case test data (invalid inputs)
 error_case_data = [
-    {"username": "", "password": generate_password(10)},  # Empty username
-    {"username": generate_username(), "password": ""},    # Empty password
-    {"username": generate_username(), "password": "short"}, # Password too short
+    # Invalid email format
+    {"userId": 5, "name": "Invalid Email", "email": "invalid-email", "password": "InvalidEmailPass!"},
+    # Password too short
+    {"userId": 6, "name": "Short Password", "email": "short.pass@example.com", "password": "short"},
+    # Missing userId
+    {"name": "Missing UserId", "email": "missing.userid@example.com", "password": "MissingUserIdPass!"},
 ]
 
-# Special Character and Format Test Data
-# Usernames and passwords with special characters
+# Special character and format test data
 special_character_data = [
-    {"username": "user!@#", "password": generate_password(10)},
-    {"username": generate_username(), "password": "P@ssw0rd!"}, # Common special character password
-    {"username": "user123", "password": "12345678"}, # Numeric password
+    # Special characters in name
+    {"userId": 7, "name": "Special!@#$%^&*()_+", "email": "special.char@example.com", "password": "SpecialCharPass!"},
+    # Email with subdomain
+    {"userId": 8, "name": "Subdomain Email", "email": "sub.domain@sub.example.com", "password": "SubDomainPass123!"},
+    # Password with all special characters
+    {"userId": 9, "name": "All Special", "email": "all.special@example.com", "password": "!@#$%^&*()_+"},
 ]
 
 # Combine all test data
 all_test_data = happy_path_data + edge_case_data + error_case_data + special_character_data
 
-# Output the test data
-for i, data in enumerate(all_test_data, start=1):
-    print(f"Test Case {i}: Username: {data['username']}, Password: {data['password']}, Password Hash: {hash_password(data['password'])}")
+# Output test data as JSON
+print(json.dumps(all_test_data, indent=2))
 
-
-This code generates test data for a user authentication system, covering happy path scenarios, edge cases, error cases, and special character scenarios. Each test case is printed with a hashed password to simulate storage in a database.
