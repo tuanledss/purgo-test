@@ -3,78 +3,109 @@
 
 - **Major Components and Interactions:**
   - **CSV Data Source:** The CSV file located at `/Volumes/purgo_databricks/purgo_playground/d_product_revenue_csv/d_product_revenue.csv`.
-  - **Databricks SQL Engine:** Used to query the CSV file and create the table.
-  - **Unity Catalog:** Manages the metadata and permissions for the table `purgo_databricks.purgo_playground.d_product_revenue_file_bien_test`.
+  - **Databricks SQL Engine:** Used to execute SQL queries for data extraction, transformation, and loading (ETL).
+  - **Target Table:** `d_product_revenue_file_bien_test` in the Unity Catalog at `purgo_databricks.purgo_playground`.
+  - **Permissions Management:** Granting `SELECT AND MODIFY` permissions to `bien.luong@dssolution.com`.
 
 - **Input/Output Interfaces:**
   - **Input:** CSV file from the specified volume path.
-  - **Output:** A table named `d_product_revenue_file_bien_test` in the Unity Catalog.
+  - **Output:** SQL table `d_product_revenue_file_bien_test` with data loaded from the CSV.
 
 - **Dependencies and External Systems:**
-  - **Databricks Environment:** Required for executing SQL queries.
-  - **Unity Catalog:** Required for managing table metadata and permissions.
+  - **Databricks Environment:** For executing SQL queries and managing data.
+  - **Unity Catalog:** For managing data governance and permissions.
 
 #### 2. Data Flow
 
 - **Data Transformation Steps:**
-  1. Load the CSV file into a temporary DataFrame.
-  2. Create a table from the DataFrame in the Unity Catalog.
-  3. Verify the row count between the CSV file and the created table.
+  1. **Load CSV Data:** Use Databricks SQL to read the CSV file.
+  2. **Create Table:** Define and create the table `d_product_revenue_file_bien_test` with appropriate schema.
+  3. **Insert Data:** Load data from the CSV into the table.
+  4. **Row Count Verification:** Compare row counts between the CSV and the table.
+  5. **Grant Permissions:** Assign `SELECT AND MODIFY` permissions to the specified user.
 
 - **Data Formats and Schemas:**
-  - **CSV Format:** Assumed to have a header row with column names.
-  - **Table Schema:** Derived from the CSV file's header and data types inferred by Databricks.
+  - **CSV Format:** Assumed to be comma-separated values with headers.
+  - **Table Schema:** To be defined based on CSV headers. Example:
+    
+    CREATE TABLE purgo_databricks.purgo_playground.d_product_revenue_file_bien_test (
+      product_id STRING,
+      revenue DECIMAL(10, 2),
+      date DATE
+    );
+    
 
 - **Validation Rules and Error Handling:**
-  - **Row Count Validation:** Ensure the number of rows in the CSV matches the table.
-  - **Error Handling:** Log errors if row counts do not match or if table creation fails.
+  - **Row Count Mismatch:** Log an error and halt the process if row counts do not match.
+  - **Data Type Validation:** Ensure data types in the CSV match the table schema.
+  - **Permission Errors:** Log any errors encountered during permission granting.
 
 #### 3. Implementation Steps
 
-1. **Load CSV into DataFrame:**
-   - Use `spark.read.csv` to load the CSV file into a DataFrame.
-   - **Acceptance Criteria:** DataFrame is successfully created with the correct schema.
+- **Step 1: Load CSV Data**
+  - **Action:** Use Databricks SQL to read the CSV file.
+  - **Acceptance Criteria:** Data is successfully read into a temporary view.
 
-2. **Create Table in Unity Catalog:**
-   - Use `DataFrame.write.saveAsTable` to create the table `d_product_revenue_file_bien_test`.
-   - **Acceptance Criteria:** Table is created and registered in the Unity Catalog.
+- **Step 2: Create Table**
+  - **Action:** Define and create the table with the appropriate schema.
+  - **Acceptance Criteria:** Table is created in the Unity Catalog.
 
-3. **Verify Row Count:**
-   - Use `DataFrame.count()` and `SELECT COUNT(*)` on the table to verify row counts.
-   - **Acceptance Criteria:** Row counts match between the CSV and the table.
+- **Step 3: Insert Data**
+  - **Action:** Insert data from the temporary view into the table.
+  - **Acceptance Criteria:** Data is successfully inserted with no errors.
 
-4. **Grant Permissions:**
-   - Use `GRANT SELECT, MODIFY ON TABLE purgo_databricks.purgo_playground.d_product_revenue_file_bien_test TO 'bien.luong@dssolution.com'`.
-   - **Acceptance Criteria:** Permissions are successfully granted.
+- **Step 4: Row Count Verification**
+  - **Action:** Compare row counts between the CSV and the table.
+  - **Acceptance Criteria:** Row counts match; log success or error.
+
+- **Step 5: Grant Permissions**
+  - **Action:** Grant `SELECT AND MODIFY` permissions to the specified user.
+  - **Acceptance Criteria:** Permissions are successfully granted.
 
 #### 4. Technical Considerations
 
 - **Performance Requirements:**
-  - Ensure efficient loading and querying of the CSV file to minimize execution time.
+  - Ensure efficient data loading and querying to minimize execution time.
+  - Optimize SQL queries for performance.
 
 - **Security Considerations:**
-  - Ensure that only authorized users have access to the table by correctly setting permissions.
+  - Ensure permissions are granted only to authorized users.
+  - Validate data integrity and prevent unauthorized access.
 
 - **Scalability Aspects:**
-  - Design the solution to handle larger CSV files by leveraging Databricks' distributed computing capabilities.
+  - Design the solution to handle increasing data volumes.
+  - Ensure the architecture supports additional data sources and tables in the future.
 
 ### Example SQL Query
 
 
--- Load CSV into a temporary view
+-- Load CSV data into a temporary view
 CREATE OR REPLACE TEMPORARY VIEW temp_d_product_revenue AS
 SELECT * FROM csv.`/Volumes/purgo_databricks/purgo_playground/d_product_revenue_csv/d_product_revenue.csv`;
 
--- Create table from the temporary view
-CREATE TABLE purgo_databricks.purgo_playground.d_product_revenue_file_bien_test AS
+-- Create the target table
+CREATE TABLE IF NOT EXISTS purgo_databricks.purgo_playground.d_product_revenue_file_bien_test (
+  product_id STRING,
+  revenue DECIMAL(10, 2),
+  date DATE
+);
+
+-- Insert data into the target table
+INSERT INTO purgo_databricks.purgo_playground.d_product_revenue_file_bien_test
 SELECT * FROM temp_d_product_revenue;
 
 -- Verify row count
-SELECT COUNT(*) FROM temp_d_product_revenue;
-SELECT COUNT(*) FROM purgo_databricks.purgo_playground.d_product_revenue_file_bien_test;
+WITH csv_count AS (
+  SELECT COUNT(*) AS cnt FROM temp_d_product_revenue
+),
+table_count AS (
+  SELECT COUNT(*) AS cnt FROM purgo_databricks.purgo_playground.d_product_revenue_file_bien_test
+)
+SELECT CASE WHEN csv_count.cnt = table_count.cnt THEN 'Row count matches' ELSE 'Row count mismatch' END AS verification
+FROM csv_count, table_count;
 
 -- Grant permissions
-GRANT SELECT, MODIFY ON TABLE purgo_databricks.purgo_playground.d_product_revenue_file_bien_test TO 'bien.luong@dssolution.com';
+GRANT SELECT, MODIFY ON TABLE purgo_databricks.purgo_playground.d_product_revenue_file_bien_test TO `bien.luong@dssolution.com`;
 
 
 This specification provides a detailed and structured approach to implementing the requirements, ensuring clarity and precision in the technical execution.
