@@ -1,73 +1,84 @@
 import unittest
-import requests
-from unittest.mock import patch
+import json
+from my_application import process_user_data, process_transaction_data, validate_user_data, validate_transaction_data
 
-class TestUserAPI(unittest.TestCase):
-
-    BASE_URL = "http://localhost:5000/api/users"
+class TestUserDataProcessing(unittest.TestCase):
 
     def setUp(self):
-        # Setup code if needed
-        pass
+        # Load test data
+        with open('test_data.json') as f:
+            self.test_data = json.load(f)
 
-    def tearDown(self):
-        # Teardown code if needed
-        pass
+    def test_happy_path_user_data(self):
+        # Test valid user data processing
+        for data in self.test_data['happy_path_data']:
+            if 'userId' in data:
+                result = process_user_data(data)
+                self.assertTrue(result['success'])
+                self.assertEqual(result['userId'], data['userId'])
 
-    # Happy Path Tests
-    def test_create_user_valid_data(self):
-        """Test creating a user with valid data"""
-        for data in happy_path_data:
-            response = requests.post(self.BASE_URL, json=data)
-            self.assertEqual(response.status_code, 201)
-            self.assertEqual(response.json().get('email'), data['email'])
+    def test_edge_case_user_data(self):
+        # Test edge cases for user data
+        for data in self.test_data['edge_case_data']:
+            if 'userId' in data:
+                result = process_user_data(data)
+                self.assertTrue(result['success'])
+                self.assertEqual(result['userId'], data['userId'])
 
-    # Edge Case Tests
-    def test_create_user_edge_cases(self):
-        """Test creating a user with edge case data"""
-        for data in edge_case_data:
-            response = requests.post(self.BASE_URL, json=data)
-            self.assertEqual(response.status_code, 201)
-            self.assertEqual(response.json().get('name'), data['name'])
+    def test_error_case_user_data(self):
+        # Test invalid user data processing
+        for data in self.test_data['error_case_data']:
+            if 'userId' in data:
+                result = validate_user_data(data)
+                self.assertFalse(result['success'])
+                self.assertIn('error', result)
 
-    # Error Case Tests
-    def test_create_user_invalid_email(self):
-        """Test creating a user with invalid email format"""
-        data = error_case_data[0]
-        response = requests.post(self.BASE_URL, json=data)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn('Invalid email format', response.text)
+    def test_special_character_user_data(self):
+        # Test user data with special characters
+        for data in self.test_data['special_character_data']:
+            if 'userId' in data:
+                result = process_user_data(data)
+                self.assertTrue(result['success'])
+                self.assertEqual(result['userId'], data['userId'])
 
-    def test_create_user_invalid_phone_number(self):
-        """Test creating a user with invalid phone number format"""
-        data = error_case_data[1]
-        response = requests.post(self.BASE_URL, json=data)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn('Invalid phone number format', response.text)
+class TestTransactionDataProcessing(unittest.TestCase):
 
-    def test_create_user_missing_fields(self):
-        """Test creating a user with missing required fields"""
-        data = error_case_data[2]
-        response = requests.post(self.BASE_URL, json=data)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn('Missing required fields', response.text)
+    def setUp(self):
+        # Load test data
+        with open('test_data.json') as f:
+            self.test_data = json.load(f)
 
-    # Special Character Tests
-    def test_create_user_special_characters(self):
-        """Test creating a user with special characters in name and email"""
-        for data in special_char_data:
-            response = requests.post(self.BASE_URL, json=data)
-            self.assertEqual(response.status_code, 201)
-            self.assertEqual(response.json().get('name'), data['name'])
+    def test_happy_path_transaction_data(self):
+        # Test valid transaction data processing
+        for data in self.test_data['happy_path_data']:
+            if 'transactionId' in data:
+                result = process_transaction_data(data)
+                self.assertTrue(result['success'])
+                self.assertEqual(result['transactionId'], data['transactionId'])
 
-    # Exception Handling Tests
-    @patch('requests.post')
-    def test_create_user_server_error(self, mock_post):
-        """Test server error handling when creating a user"""
-        mock_post.side_effect = requests.exceptions.RequestException
-        data = happy_path_data[0]
-        with self.assertRaises(requests.exceptions.RequestException):
-            requests.post(self.BASE_URL, json=data)
+    def test_edge_case_transaction_data(self):
+        # Test edge cases for transaction data
+        for data in self.test_data['edge_case_data']:
+            if 'transactionId' in data:
+                result = process_transaction_data(data)
+                self.assertTrue(result['success'])
+                self.assertEqual(result['transactionId'], data['transactionId'])
+
+    def test_error_case_transaction_data(self):
+        # Test invalid transaction data processing
+        for data in self.test_data['error_case_data']:
+            if 'transactionId' in data:
+                result = validate_transaction_data(data)
+                self.assertFalse(result['success'])
+                self.assertIn('error', result)
+
+    def test_special_character_transaction_data(self):
+        # Test transaction data with special characters
+        for data in self.test_data['special_character_data']:
+            if 'transactionId' in data:
+                result = process_transaction_data(data)
+                self.assertTrue(result['success'])
+                self.assertEqual(result['transactionId'], data['transactionId'])
 
 if __name__ == '__main__':
     unittest.main()
