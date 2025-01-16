@@ -3,11 +3,10 @@
 
 - **Major Components and Interactions:**
   - **Data Loader:** Responsible for loading the white wine quality dataset from Databricks.
-  - **Data Preprocessor:** Converts the 'quality' label into a binary 'high_quality' variable and splits the dataset into training, validation, and test sets.
+  - **Data Preprocessor:** Converts the 'quality' label into a binary variable 'high_quality' and splits the dataset into training, validation, and test sets.
   - **Model Trainer:** Utilizes the Random Forest algorithm to train a classification model.
   - **Model Validator and Tester:** Evaluates the model's performance on validation and test datasets.
   - **Experiment Tracker:** Uses MLflow to log model parameters, performance metrics, and save the trained model.
-  - **Model Registry:** Registers the final model in MLflow for future use.
 
 - **Input/Output Interfaces:**
   - **Data Loader:**
@@ -20,36 +19,33 @@
     - Input: Training DataFrame
     - Output: Trained Random Forest model
   - **Model Validator and Tester:**
-    - Input: Validation and Test DataFrames, Trained Model
+    - Input: Validation and Test DataFrames
     - Output: Performance metrics (accuracy, precision, recall, F1-score)
   - **Experiment Tracker:**
-    - Input: Model parameters, performance metrics
-    - Output: Logged experiment in MLflow
-  - **Model Registry:**
-    - Input: Trained Model
-    - Output: Registered model in MLflow
+    - Input: Model parameters and metrics
+    - Output: Logged experiments in MLflow
 
 - **Dependencies and External Systems:**
-  - **Databricks:** For data storage and processing.
-  - **MLflow:** For experiment tracking and model registry.
-  - **Scikit-learn:** For Random Forest implementation.
+  - **Databricks:** For data storage and processing
+  - **MLflow:** For experiment tracking and model management
+  - **Scikit-learn:** For Random Forest implementation
 
 #### 2. Data Flow
 
 - **Data Transformation Steps:**
   1. Load the dataset using Pandas.
   2. Convert 'quality' to 'high_quality' using a threshold (e.g., quality >= 7).
-  3. Split the dataset into 70% training, 15% validation, and 15% test sets.
+  3. Split the data into 70% training, 15% validation, and 15% test sets.
 
 - **Data Formats and Schemas:**
   - **Input DataFrame Schema:**
     - Columns: `fixed acidity`, `volatile acidity`, `citric acid`, `residual sugar`, `chlorides`, `free sulfur dioxide`, `total sulfur dioxide`, `density`, `pH`, `sulphates`, `alcohol`, `quality`
   - **Output DataFrame Schema:**
-    - Columns: Same as input with an additional `high_quality` column (binary)
+    - Columns: Same as input with 'quality' replaced by 'high_quality'
 
 - **Validation Rules and Error Handling:**
-  - Ensure no missing values in the dataset. If found, impute or remove.
-  - Validate that the 'quality' column is present and correctly converted.
+  - Ensure no missing values in the dataset.
+  - Validate that the 'quality' column is converted correctly to 'high_quality'.
   - Handle errors in data loading and conversion with appropriate logging.
 
 #### 3. Implementation Steps
@@ -57,10 +53,9 @@
 - **Development Steps:**
   1. Implement the Data Loader to read the CSV file into a DataFrame.
   2. Develop the Data Preprocessor to convert 'quality' to 'high_quality' and split the data.
-  3. Implement the Model Trainer using Random Forest with default hyperparameters.
+  3. Implement the Model Trainer using Random Forest with default parameters.
   4. Develop the Model Validator and Tester to evaluate model performance.
-  5. Set up MLflow for experiment tracking and log initial experiments.
-  6. Register the final model in MLflow.
+  5. Set up MLflow for logging experiments and saving models.
 
 - **Order of Implementation:**
   1. Data Loader
@@ -68,26 +63,23 @@
   3. Model Trainer
   4. Model Validator and Tester
   5. Experiment Tracker
-  6. Model Registry
 
 - **Acceptance Criteria for Each Step:**
   - Data Loader: Successfully loads data into a DataFrame.
   - Data Preprocessor: Correctly converts and splits data.
   - Model Trainer: Trains a model without errors.
   - Model Validator and Tester: Achieves at least 80% accuracy on the test set.
-  - Experiment Tracker: Logs experiments with all necessary details.
-  - Model Registry: Model is registered and accessible in MLflow.
+  - Experiment Tracker: Logs all required parameters and metrics in MLflow.
 
 #### 4. Technical Considerations
 
 - **Performance Requirements:**
-  - The model should achieve at least 80% accuracy on the test dataset.
-  - Data loading and preprocessing should be optimized for speed.
+  - The model should be trained and evaluated within a reasonable time frame (e.g., under 30 minutes).
 
 - **Security Considerations:**
-  - Ensure data privacy by not exposing sensitive information.
-  - Secure access to Databricks and MLflow with appropriate authentication.
+  - Ensure data privacy by restricting access to the dataset and MLflow experiments.
+  - Implement access controls for MLflow to manage permissions.
 
 - **Scalability Aspects:**
-  - Design the pipeline to handle larger datasets by using scalable data processing techniques.
-  - Ensure that the model training process can be parallelized if needed.
+  - Design the pipeline to handle larger datasets by optimizing data loading and processing steps.
+  - Ensure the model can be retrained with new data without significant changes to the pipeline.
