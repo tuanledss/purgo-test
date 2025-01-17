@@ -1,52 +1,78 @@
 
-1. Component Architecture
-   - **Major Components and Interactions:**
-     - **Data Ingestion Module:** Responsible for reading the CSV file containing wine quality data.
-     - **Data Processing Module:** Handles data cleaning, transformation, and analysis.
-     - **Data Output Module:** Displays processed data and insights.
-   - **Input/Output Interfaces:**
-     - **Input:** CSV file path (parameterized for flexibility).
-     - **Output:** Processed data and analysis results.
-   - **Dependencies and External Systems:**
-     - **Pandas Library:** For data manipulation and analysis.
-     - **File System:** Access to the file path for reading the CSV file.
+## 1. Component Architecture
 
-2. Data Flow
-   - **Data Transformation Steps:**
-     1. **Data Ingestion:** Read the CSV file using `pandas.read_csv()`.
-     2. **Data Cleaning:** Remove duplicates, handle missing values, and correct data types.
-     3. **Data Transformation:** Normalize or standardize data if necessary.
-     4. **Data Analysis:** Perform statistical analysis or machine learning as required.
-   - **Data Formats and Schemas:**
-     - **CSV Format:** Comma-separated values with headers.
-     - **DataFrame Schema:** Columns include "fixed acidity", "volatile acidity", "citric acid", etc.
-   - **Validation Rules and Error Handling:**
-     - **Validation Rules:** Ensure all columns are present and data types are correct.
-     - **Error Handling:** Implement try-except blocks to handle file not found errors, data type mismatches, and missing values.
+### Major Components and Their Interactions
+- **Data Parser**: Responsible for parsing the unconventional data format into a structured format.
+- **Data Validator**: Ensures data integrity and consistency by validating parsed data.
+- **Error Handler**: Manages errors during parsing and validation, logging issues for further analysis.
+- **Data Processor**: Transforms validated data into the desired output format.
 
-3. Implementation Steps
-   - **Step 1: Parameterize File Path**
-     - **Implementation:** Modify the script to accept a file path as a parameter.
-     - **Acceptance Criteria:** The script should successfully read a CSV file from a given path.
-   - **Step 2: Optimize Data Ingestion**
-     - **Implementation:** Remove redundant code and ensure efficient data reading.
-     - **Acceptance Criteria:** The script should read the CSV file once without redundancy.
-   - **Step 3: Implement Data Cleaning**
-     - **Implementation:** Add functions to handle missing values and correct data types.
-     - **Acceptance Criteria:** The data should be free of missing values and have correct data types.
-   - **Step 4: Develop Data Transformation Logic**
-     - **Implementation:** Implement normalization or standardization functions.
-     - **Acceptance Criteria:** Data should be transformed according to specified methods.
-   - **Step 5: Conduct Data Analysis**
-     - **Implementation:** Implement analysis functions (e.g., statistical analysis, machine learning).
-     - **Acceptance Criteria:** Analysis results should be accurate and meet project objectives.
+### Input/Output Interfaces
+- **Input**: A list of dictionaries, each containing a single key-value pair where the key is a semicolon-separated string of column names and the value is a semicolon-separated string of data values.
+- **Output**: A list of dictionaries with individual keys for each column name and corresponding data values.
 
-4. Technical Considerations
-   - **Performance Requirements:**
-     - Ensure efficient data processing to handle large datasets without significant delays.
-   - **Security Considerations:**
-     - Validate file paths to prevent unauthorized access.
-     - Ensure data privacy by handling sensitive information appropriately.
-   - **Scalability Aspects:**
-     - Design the system to handle increasing data volumes by optimizing data processing and storage.
-     - Consider using distributed computing frameworks if necessary for large-scale data analysis.
+### Dependencies and External Systems
+- **Python Standard Library**: Utilizes libraries such as `logging` for error handling and `re` for parsing.
+- **External Libraries**: None specified, but potential use of `pandas` for data manipulation if needed.
+
+## 2. Data Flow
+
+### Data Transformation Steps
+1. **Parsing**: Split the single string of keys into individual column names and the single string of values into individual data points.
+2. **Validation**: Check the number of fields, data types, and handle missing values.
+3. **Error Handling**: Log any discrepancies or errors encountered during parsing and validation.
+4. **Data Structuring**: Convert parsed and validated data into a list of dictionaries with individual keys for each column.
+
+### Data Formats and Schemas
+- **Input Schema**: 
+  
+  [{'fixed acidity;"volatile acidity";...;"quality"': '7;0.27;...;6'}, ...]
+  
+- **Output Schema**:
+  
+  [{'fixed acidity': 7.0, 'volatile acidity': 0.27, ..., 'quality': 6}, ...]
+  
+
+### Validation Rules and Error Handling
+- **Field Count Validation**: Ensure each entry has the same number of fields as the number of column names.
+- **Data Type Validation**: Convert numerical fields to appropriate data types (e.g., `float` for acidity, `int` for quality).
+- **Error Scenarios**: Log errors for mismatched field counts, invalid data types, and missing values.
+
+## 3. Implementation Steps
+
+### Development Steps
+1. **Implement Data Parser**:
+   - Function `parse_data(data: List[Dict[str, str]]) -> List[Dict[str, Any]]`
+   - Split keys and values using `str.split(';')`.
+2. **Implement Data Validator**:
+   - Function `validate_data(parsed_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]`
+   - Check field counts and data types.
+3. **Implement Error Handler**:
+   - Function `log_error(message: str)`
+   - Use `logging` to capture errors.
+4. **Implement Data Processor**:
+   - Function `process_data(validated_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]`
+   - Structure data into the desired output format.
+
+### Order of Implementation
+1. Data Parser
+2. Data Validator
+3. Error Handler
+4. Data Processor
+
+### Acceptance Criteria
+- **Data Parser**: Successfully splits keys and values into lists.
+- **Data Validator**: Correctly identifies and logs invalid entries.
+- **Error Handler**: Logs errors with appropriate messages.
+- **Data Processor**: Outputs data in the specified format.
+
+## 4. Technical Considerations
+
+### Performance Requirements
+- Efficient parsing and validation to handle large datasets without significant delay.
+
+### Security Considerations
+- Ensure data is sanitized to prevent injection attacks if data is sourced from untrusted inputs.
+
+### Scalability Aspects
+- Design components to handle increasing data volumes by optimizing parsing and validation logic. Consider using batch processing for large datasets.
