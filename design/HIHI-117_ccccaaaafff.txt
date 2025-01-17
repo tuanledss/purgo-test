@@ -2,70 +2,82 @@
 #### 1. Component Architecture
 
 - **Major Components and Interactions:**
-  - **Data Ingestion Module:** Responsible for loading the data from the provided Python dictionary format.
-  - **Data Transformation Module:** Converts the semicolon-separated string values into a structured format (e.g., pandas DataFrame).
-  - **Data Validation Module:** Ensures data integrity and consistency, checking for missing or corrupted entries.
-  - **Data Analysis Module:** Performs exploratory data analysis and potentially predictive modeling.
-  - **Output Module:** Exports the cleaned and analyzed data to a desired format (e.g., CSV, JSON).
-
+  - **Data Ingestion Module:** Responsible for reading the CSV file and converting it into a DataFrame.
+  - **Data Transformation Module:** Converts the DataFrame into a dictionary format for further processing.
+  - **Data Validation Module:** Ensures data integrity and quality by applying validation rules.
+  - **Error Handling Module:** Manages errors during data ingestion and transformation.
+  
 - **Input/Output Interfaces:**
-  - **Input:** Python dictionary with semicolon-separated values.
-  - **Output:** Structured data format (e.g., pandas DataFrame) and analysis results.
+  - **Data Ingestion Module:**
+    - Input: CSV file path (e.g., '/dbfs/FileStore/winequality-white.csv')
+    - Output: Pandas DataFrame
+  - **Data Transformation Module:**
+    - Input: Pandas DataFrame
+    - Output: List of dictionaries
+  - **Data Validation Module:**
+    - Input: List of dictionaries
+    - Output: Validated data or error messages
+  - **Error Handling Module:**
+    - Input: Error messages
+    - Output: Logs or alerts
 
 - **Dependencies and External Systems:**
-  - **Python Libraries:** pandas, numpy, and possibly scikit-learn for data manipulation and analysis.
-  - **Data Storage:** Local file system or cloud storage for input/output data.
+  - **Pandas Library:** For data manipulation and transformation.
+  - **File System Access:** To read the CSV file.
 
 #### 2. Data Flow
 
 - **Data Transformation Steps:**
-  1. **Load Data:** Read the Python dictionary into a pandas DataFrame.
-  2. **Parse Data:** Split the semicolon-separated string into individual columns.
-  3. **Clean Data:** Remove any trailing semicolons and handle missing or corrupted entries.
+  1. **Read CSV File:** Use `pandas.read_csv()` to load data into a DataFrame.
+  2. **Convert DataFrame to Dictionary:** Use `DataFrame.to_dict(orient='records')` to convert the DataFrame into a list of dictionaries.
+  3. **Validate Data:** Apply validation rules to ensure data quality.
 
 - **Data Formats and Schemas:**
-  - **Input Schema:** Dictionary with a single key-value pair, where the key is a concatenated string of column headers, and the value is a semicolon-separated string of data values.
-  - **Output Schema:** DataFrame with columns: `fixed_acidity`, `volatile_acidity`, `citric_acid`, `residual_sugar`, `chlorides`, `free_sulfur_dioxide`, `total_sulfur_dioxide`, `density`, `pH`, `sulphates`, `alcohol`, `quality`.
+  - **CSV Format:** Semicolon-separated values with columns such as "fixed acidity," "volatile acidity," etc.
+  - **DataFrame Schema:** Columns corresponding to CSV headers.
+  - **Dictionary Format:** Each dictionary represents a row with keys as column names.
 
 - **Validation Rules and Error Handling:**
-  - **Validation Rules:** Ensure all entries have the same number of columns. Check for non-numeric values in numeric fields.
-  - **Error Handling:** Log and skip corrupted entries. Raise warnings for missing values.
+  - **Validation Rules:**
+    - Ensure all required columns are present.
+    - Check for non-null values in critical columns.
+    - Validate data types (e.g., numeric values for acidity).
+  - **Error Handling:**
+    - Log errors if the CSV file is missing or corrupted.
+    - Raise exceptions for data validation failures.
 
 #### 3. Implementation Steps
 
 - **Development Steps:**
-  1. **Data Ingestion:**
-     - Implement a function `load_data()` to read the dictionary into a DataFrame.
-  2. **Data Transformation:**
-     - Implement a function `transform_data()` to parse and clean the data.
-  3. **Data Validation:**
-     - Implement a function `validate_data()` to check data integrity.
-  4. **Data Analysis:**
-     - Implement exploratory data analysis using pandas and visualization libraries.
-  5. **Output Module:**
-     - Implement a function `export_data()` to save the cleaned data.
+  1. **Implement Data Ingestion Module:**
+     - Use `pandas.read_csv()` to read the CSV file.
+     - Acceptance Criteria: Successfully read and display the first few rows of the DataFrame.
+  2. **Implement Data Transformation Module:**
+     - Convert the DataFrame to a list of dictionaries.
+     - Acceptance Criteria: Verify the conversion by checking the first few dictionary entries.
+  3. **Implement Data Validation Module:**
+     - Apply validation rules to the data.
+     - Acceptance Criteria: Ensure data passes all validation checks.
+  4. **Implement Error Handling Module:**
+     - Add error handling for file reading and data validation.
+     - Acceptance Criteria: Proper error messages are logged or displayed.
 
 - **Order of Implementation:**
-  1. Data Ingestion
-  2. Data Transformation
-  3. Data Validation
-  4. Data Analysis
-  5. Output Module
-
-- **Acceptance Criteria:**
-  - Data is successfully loaded and transformed into a DataFrame.
-  - All validation checks pass without errors.
-  - Data analysis results are generated and exported correctly.
+  1. Data Ingestion Module
+  2. Data Transformation Module
+  3. Data Validation Module
+  4. Error Handling Module
 
 #### 4. Technical Considerations
 
 - **Performance Requirements:**
-  - Ensure efficient data loading and transformation, capable of handling large datasets.
+  - Ensure efficient reading and processing of large CSV files.
+  - Optimize data transformation to minimize memory usage.
 
 - **Security Considerations:**
-  - Validate input data to prevent injection attacks.
-  - Ensure data privacy by anonymizing sensitive information if necessary.
+  - Validate file paths to prevent unauthorized access.
+  - Sanitize input data to prevent injection attacks.
 
 - **Scalability Aspects:**
-  - Design the system to handle increasing data volumes by optimizing data processing and storage.
-  - Consider using distributed computing frameworks if data size exceeds local processing capabilities.
+  - Design modules to handle increasing data volumes.
+  - Consider parallel processing for data validation to improve performance.
