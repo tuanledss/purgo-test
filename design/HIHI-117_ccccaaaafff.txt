@@ -1,84 +1,83 @@
 
 1. Component Architecture
-- **Major Components and Interactions:**
-  - **User Interface (UI):** A web-based front-end application that allows users to interact with the system. It communicates with the backend via RESTful APIs.
-  - **Backend Service:** A server-side application responsible for processing requests from the UI, performing business logic, and interacting with the database.
-  - **Database:** A relational database (e.g., PostgreSQL) that stores all persistent data.
-  - **External API Integration:** Interfaces with third-party services for additional data processing and retrieval.
+   - **Major Components and Interactions:**
+     - **Data Ingestion Module:** Responsible for reading the CSV file containing wine quality data.
+     - **Data Processing Module:** Handles data cleaning, transformation, and preparation for analysis.
+     - **Data Analysis Module:** Performs statistical analysis and generates insights from the data.
+     - **User Interface Module:** Displays the processed data and analysis results to the user.
 
-- **Input/Output Interfaces:**
-  - **UI to Backend:** JSON over HTTP for all API requests and responses.
-  - **Backend to Database:** SQL queries for data retrieval and manipulation.
-  - **Backend to External API:** RESTful API calls using JSON format.
+   - **Input/Output Interfaces:**
+     - **Data Ingestion Module:**
+       - Input: CSV file path (parameterized)
+       - Output: Pandas DataFrame
+     - **Data Processing Module:**
+       - Input: Raw DataFrame
+       - Output: Cleaned and transformed DataFrame
+     - **Data Analysis Module:**
+       - Input: Processed DataFrame
+       - Output: Analysis results (e.g., summary statistics, visualizations)
+     - **User Interface Module:**
+       - Input: Analysis results
+       - Output: Displayed results in a user-friendly format
 
-- **Dependencies and External Systems:**
-  - **Authentication Service:** OAuth 2.0 for user authentication.
-  - **Logging Service:** Centralized logging using ELK stack.
-  - **Notification Service:** Integration with an email/SMS service for user notifications.
+   - **Dependencies and External Systems:**
+     - **Pandas Library:** For data manipulation and analysis.
+     - **Matplotlib/Seaborn:** For data visualization.
+     - **Jupyter Notebook:** For interactive data exploration and presentation.
 
 2. Data Flow
-- **Data Transformation Steps:**
-  - **Step 1:** User input is validated and transformed into a JSON request.
-  - **Step 2:** Backend processes the request, applies business logic, and queries the database.
-  - **Step 3:** Data retrieved from the database is transformed into a JSON response.
-  - **Step 4:** Response is sent back to the UI for display.
+   - **Data Transformation Steps:**
+     1. **Data Ingestion:**
+        - Read the CSV file using `pandas.read_csv()`.
+     2. **Data Cleaning:**
+        - Remove duplicate rows.
+        - Handle missing values by filling with mean or median.
+     3. **Data Transformation:**
+        - Normalize numerical columns.
+        - Encode categorical columns if any.
+     4. **Data Analysis:**
+        - Calculate summary statistics.
+        - Generate visualizations for data distribution and correlations.
 
-- **Data Formats and Schemas:**
-  - **Request Schema:** 
-    
-    {
-      "userId": "string",
-      "action": "string",
-      "parameters": {
-        "key1": "value1",
-        "key2": "value2"
-      }
-    }
-    
-  - **Response Schema:**
-    
-    {
-      "status": "success/failure",
-      "data": {
-        "resultKey": "resultValue"
-      },
-      "error": {
-        "code": "errorCode",
-        "message": "errorMessage"
-      }
-    }
-    
+   - **Data Formats and Schemas:**
+     - CSV file with columns: `fixed acidity`, `volatile acidity`, `citric acid`, `residual sugar`, `chlorides`, `free sulfur dioxide`, `total sulfur dioxide`, `density`, `pH`, `sulphates`, `alcohol`, `quality`.
+     - DataFrame schema: Same as CSV columns with appropriate data types (e.g., float for numerical columns).
 
-- **Validation Rules and Error Handling:**
-  - **Validation Rules:** Ensure all required fields are present and correctly formatted. Use regex for string patterns and range checks for numerical values.
-  - **Error Handling:** Return HTTP status codes (e.g., 400 for bad requests, 500 for server errors) and detailed error messages in the response.
+   - **Validation Rules and Error Handling:**
+     - Validate CSV file path and existence.
+     - Check for non-numeric values in numeric columns and handle errors.
+     - Log errors and warnings during data processing.
 
 3. Implementation Steps
-- **Step 1: UI Development**
-  - Implement the user interface using React.js.
-  - **Acceptance Criteria:** UI should render correctly and send requests to the backend.
+   - **Step 1: Parameterize File Path**
+     - Modify the script to accept a file path as a parameter.
+     - **Acceptance Criteria:** The script should read the CSV file from a specified path.
 
-- **Step 2: Backend API Development**
-  - Develop RESTful APIs using Node.js and Express.
-  - **Acceptance Criteria:** APIs should handle requests and return appropriate responses.
+   - **Step 2: Implement Data Cleaning**
+     - Remove duplicate rows and handle missing values.
+     - **Acceptance Criteria:** The DataFrame should have no duplicates and missing values handled.
 
-- **Step 3: Database Schema Design**
-  - Design and implement the database schema.
-  - **Acceptance Criteria:** Database should support all required queries and constraints.
+   - **Step 3: Implement Data Transformation**
+     - Normalize and encode data as necessary.
+     - **Acceptance Criteria:** Data should be in a format suitable for analysis.
 
-- **Step 4: External API Integration**
-  - Implement integration with third-party services.
-  - **Acceptance Criteria:** System should successfully retrieve and process data from external APIs.
+   - **Step 4: Implement Data Analysis**
+     - Calculate summary statistics and generate visualizations.
+     - **Acceptance Criteria:** Analysis results should be accurate and visualizations should be clear.
+
+   - **Step 5: Develop User Interface**
+     - Create a user-friendly interface to display results.
+     - **Acceptance Criteria:** Results should be easily accessible and understandable by users.
 
 4. Technical Considerations
-- **Performance Requirements:**
-  - System should handle up to 1000 concurrent users with response times under 200ms for 95% of requests.
+   - **Performance Requirements:**
+     - The system should handle datasets up to 100,000 rows efficiently.
+     - Data processing and analysis should complete within 5 seconds for datasets of this size.
 
-- **Security Considerations:**
-  - Implement HTTPS for all communications.
-  - Use parameterized queries to prevent SQL injection.
-  - Ensure proper authentication and authorization using OAuth 2.0.
+   - **Security Considerations:**
+     - Ensure file paths are validated to prevent unauthorized access.
+     - Implement logging for data access and processing activities.
 
-- **Scalability Aspects:**
-  - Design the system to be horizontally scalable by using load balancers and stateless services.
-  - Use database sharding and replication to handle increased data loads.
+   - **Scalability Aspects:**
+     - Design the system to easily accommodate additional data columns or new data sources.
+     - Ensure modularity in code to allow for easy updates and maintenance.
