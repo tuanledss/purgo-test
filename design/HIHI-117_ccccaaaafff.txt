@@ -1,78 +1,68 @@
 
 ## 1. Component Architecture
 
-### Major Components and Their Interactions
-- **Data Parser**: Responsible for parsing the unconventional data format into a structured format.
-- **Data Validator**: Ensures data integrity and consistency by validating parsed data.
-- **Error Handler**: Manages errors during parsing and validation, logging issues for further analysis.
-- **Data Processor**: Transforms validated data into the desired output format.
+- **Major Components and Their Interactions:**
+  - **Data Parser:** Responsible for parsing the unconventional data format into a structured format.
+  - **Data Validator:** Ensures data integrity and consistency by validating parsed data.
+  - **Error Handler:** Manages errors during parsing and validation, logging issues for further analysis.
+  - **Data Processor:** Transforms validated data into the desired output format.
 
-### Input/Output Interfaces
-- **Input**: A list of dictionaries, each containing a single key-value pair where the key is a semicolon-separated string of column names and the value is a semicolon-separated string of data values.
-- **Output**: A list of dictionaries with individual keys for each column name and corresponding data values.
+- **Input/Output Interfaces:**
+  - **Input Interface:** Accepts a list of dictionaries, each containing a single key-value pair where the key is a semicolon-separated string of column names and the value is a semicolon-separated string of data values.
+  - **Output Interface:** Outputs a list of dictionaries with individual keys for each column and corresponding values.
 
-### Dependencies and External Systems
-- **Python Standard Library**: Utilizes libraries such as `logging` for error handling and `re` for parsing.
-- **External Libraries**: None specified, but potential use of `pandas` for data manipulation if needed.
+- **Dependencies and External Systems:**
+  - **Python Standard Library:** Utilizes libraries such as `csv` for parsing and `logging` for error handling.
+  - **External Systems:** None specified; operates independently within the application.
 
 ## 2. Data Flow
 
-### Data Transformation Steps
-1. **Parsing**: Split the single string of keys into individual column names and the single string of values into individual data points.
-2. **Validation**: Check the number of fields, data types, and handle missing values.
-3. **Error Handling**: Log any discrepancies or errors encountered during parsing and validation.
-4. **Data Structuring**: Convert parsed and validated data into a list of dictionaries with individual keys for each column.
+- **Data Transformation Steps:**
+  1. **Parsing Keys:** Split the single string of keys into a list of individual column names.
+  2. **Parsing Values:** Split the single string of values into a list of individual data points.
+  3. **Mapping Data:** Map each data point to its corresponding column name to form a structured dictionary.
 
-### Data Formats and Schemas
-- **Input Schema**: 
-  
-  [{'fixed acidity;"volatile acidity";...;"quality"': '7;0.27;...;6'}, ...]
-  
-- **Output Schema**:
-  
-  [{'fixed acidity': 7.0, 'volatile acidity': 0.27, ..., 'quality': 6}, ...]
-  
+- **Data Formats and Schemas:**
+  - **Input Format:** `{'key_string': 'value_string'}`
+  - **Output Schema:** `{'fixed acidity': float, 'volatile acidity': float, ..., 'quality': int}`
 
-### Validation Rules and Error Handling
-- **Field Count Validation**: Ensure each entry has the same number of fields as the number of column names.
-- **Data Type Validation**: Convert numerical fields to appropriate data types (e.g., `float` for acidity, `int` for quality).
-- **Error Scenarios**: Log errors for mismatched field counts, invalid data types, and missing values.
+- **Validation Rules and Error Handling:**
+  - **Validation Rules:**
+    - Ensure the number of parsed values matches the number of column names.
+    - Validate data types: numerical fields should be converted to `float` or `int` as appropriate.
+  - **Error Handling:**
+    - Log errors where the number of values does not match the number of keys.
+    - Log type conversion errors and continue processing remaining data.
 
 ## 3. Implementation Steps
 
-### Development Steps
-1. **Implement Data Parser**:
-   - Function `parse_data(data: List[Dict[str, str]]) -> List[Dict[str, Any]]`
-   - Split keys and values using `str.split(';')`.
-2. **Implement Data Validator**:
-   - Function `validate_data(parsed_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]`
-   - Check field counts and data types.
-3. **Implement Error Handler**:
-   - Function `log_error(message: str)`
-   - Use `logging` to capture errors.
-4. **Implement Data Processor**:
-   - Function `process_data(validated_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]`
-   - Structure data into the desired output format.
+- **Step 1: Parse Keys and Values**
+  - **Implementation:** Implement a function `parse_data(data)` that splits keys and values.
+  - **Order:** First step.
+  - **Acceptance Criteria:** Function returns a list of dictionaries with parsed keys and values.
 
-### Order of Implementation
-1. Data Parser
-2. Data Validator
-3. Error Handler
-4. Data Processor
+- **Step 2: Validate Data**
+  - **Implementation:** Implement a function `validate_data(parsed_data)` that checks field counts and data types.
+  - **Order:** Second step.
+  - **Acceptance Criteria:** Function returns a list of valid data entries, logs invalid entries.
 
-### Acceptance Criteria
-- **Data Parser**: Successfully splits keys and values into lists.
-- **Data Validator**: Correctly identifies and logs invalid entries.
-- **Error Handler**: Logs errors with appropriate messages.
-- **Data Processor**: Outputs data in the specified format.
+- **Step 3: Handle Errors**
+  - **Implementation:** Implement a function `handle_errors(errors)` that logs errors.
+  - **Order:** Concurrent with validation.
+  - **Acceptance Criteria:** Errors are logged with sufficient detail for debugging.
+
+- **Step 4: Process Data**
+  - **Implementation:** Implement a function `process_data(valid_data)` that transforms data into the desired output format.
+  - **Order:** Final step.
+  - **Acceptance Criteria:** Function returns a correctly formatted list of dictionaries.
 
 ## 4. Technical Considerations
 
-### Performance Requirements
-- Efficient parsing and validation to handle large datasets without significant delay.
+- **Performance Requirements:**
+  - Ensure efficient parsing and validation to handle large datasets without significant delay.
 
-### Security Considerations
-- Ensure data is sanitized to prevent injection attacks if data is sourced from untrusted inputs.
+- **Security Considerations:**
+  - Validate and sanitize input data to prevent injection attacks or data corruption.
 
-### Scalability Aspects
-- Design components to handle increasing data volumes by optimizing parsing and validation logic. Consider using batch processing for large datasets.
+- **Scalability Aspects:**
+  - Design the parsing and validation logic to be modular and extensible, allowing for easy adaptation to changes in data format or additional validation rules.
