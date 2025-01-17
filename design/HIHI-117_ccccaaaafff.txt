@@ -2,64 +2,70 @@
 #### 1. Component Architecture
 
 - **Major Components and Interactions:**
-  - **Data Parser:** Responsible for parsing the input data from the unconventional format into a structured format.
-  - **Data Validator:** Ensures data integrity and consistency by validating parsed data.
-  - **Data Transformer:** Transforms validated data into a format suitable for analysis or machine learning tasks.
-  - **Data Exporter:** Exports the transformed data to a desired format or system for further processing or analysis.
+  - **Data Ingestion Module:** Responsible for loading the data from the provided Python dictionary format.
+  - **Data Transformation Module:** Converts the semicolon-separated string values into a structured format (e.g., pandas DataFrame).
+  - **Data Validation Module:** Ensures data integrity and consistency, checking for missing or corrupted entries.
+  - **Data Analysis Module:** Performs exploratory data analysis and potentially predictive modeling.
+  - **Output Module:** Exports the cleaned and analyzed data to a desired format (e.g., CSV, JSON).
 
 - **Input/Output Interfaces:**
-  - **Input Interface:** Accepts a list of dictionaries with concatenated keys and semicolon-separated values.
-  - **Output Interface:** Provides a list of dictionaries with individual keys for each attribute.
+  - **Input:** Python dictionary with semicolon-separated values.
+  - **Output:** Structured data format (e.g., pandas DataFrame) and analysis results.
 
 - **Dependencies and External Systems:**
-  - **Python Standard Libraries:** `json`, `csv` for data handling.
-  - **External Libraries:** `pandas` for data manipulation and transformation.
+  - **Python Libraries:** pandas, numpy, and possibly scikit-learn for data manipulation and analysis.
+  - **Data Storage:** Local file system or cloud storage for input/output data.
 
 #### 2. Data Flow
 
 - **Data Transformation Steps:**
-  1. **Parsing:** Convert the concatenated key-value pairs into a list of dictionaries with individual keys.
-  2. **Validation:** Check for data integrity, ensuring no missing or anomalous values.
-  3. **Transformation:** Convert data types as necessary (e.g., strings to floats) and normalize data if required.
-  4. **Exporting:** Save the transformed data into a CSV file or a database.
+  1. **Load Data:** Read the Python dictionary into a pandas DataFrame.
+  2. **Parse Data:** Split the semicolon-separated string into individual columns.
+  3. **Clean Data:** Remove any trailing semicolons and handle missing or corrupted entries.
 
 - **Data Formats and Schemas:**
-  - **Input Schema:** `{'fixed acidity;"volatile acidity";...;"quality"': '7;0.27;...;6'}`
-  - **Output Schema:** `{'fixed_acidity': 7.0, 'volatile_acidity': 0.27, ..., 'quality': 6}`
+  - **Input Schema:** Dictionary with a single key-value pair, where the key is a concatenated string of column headers, and the value is a semicolon-separated string of data values.
+  - **Output Schema:** DataFrame with columns: `fixed_acidity`, `volatile_acidity`, `citric_acid`, `residual_sugar`, `chlorides`, `free_sulfur_dioxide`, `total_sulfur_dioxide`, `density`, `pH`, `sulphates`, `alcohol`, `quality`.
 
 - **Validation Rules and Error Handling:**
-  - Ensure all expected keys are present after parsing.
-  - Validate that all values can be converted to their respective data types.
-  - Handle missing values by either filling with a default value or removing the entry.
-  - Log errors and inconsistencies for review.
+  - **Validation Rules:** Ensure all entries have the same number of columns. Check for non-numeric values in numeric fields.
+  - **Error Handling:** Log and skip corrupted entries. Raise warnings for missing values.
 
 #### 3. Implementation Steps
 
-1. **Data Parsing:**
-   - Implement a function `parse_data(input_data)` that splits the concatenated keys and values.
-   - **Acceptance Criteria:** The function should return a list of dictionaries with individual keys.
+- **Development Steps:**
+  1. **Data Ingestion:**
+     - Implement a function `load_data()` to read the dictionary into a DataFrame.
+  2. **Data Transformation:**
+     - Implement a function `transform_data()` to parse and clean the data.
+  3. **Data Validation:**
+     - Implement a function `validate_data()` to check data integrity.
+  4. **Data Analysis:**
+     - Implement exploratory data analysis using pandas and visualization libraries.
+  5. **Output Module:**
+     - Implement a function `export_data()` to save the cleaned data.
 
-2. **Data Validation:**
-   - Implement a function `validate_data(parsed_data)` that checks for missing or invalid values.
-   - **Acceptance Criteria:** The function should return a boolean indicating data validity and a list of errors if any.
+- **Order of Implementation:**
+  1. Data Ingestion
+  2. Data Transformation
+  3. Data Validation
+  4. Data Analysis
+  5. Output Module
 
-3. **Data Transformation:**
-   - Implement a function `transform_data(validated_data)` that converts data types and normalizes values.
-   - **Acceptance Criteria:** The function should return a list of transformed dictionaries.
-
-4. **Data Exporting:**
-   - Implement a function `export_data(transformed_data, output_format)` that saves data to a specified format.
-   - **Acceptance Criteria:** The function should successfully save data to a CSV file or database.
+- **Acceptance Criteria:**
+  - Data is successfully loaded and transformed into a DataFrame.
+  - All validation checks pass without errors.
+  - Data analysis results are generated and exported correctly.
 
 #### 4. Technical Considerations
 
 - **Performance Requirements:**
-  - The system should handle large datasets efficiently, with a target processing time of under 5 seconds for 1000 entries.
+  - Ensure efficient data loading and transformation, capable of handling large datasets.
 
 - **Security Considerations:**
-  - Ensure data is sanitized to prevent injection attacks if interfacing with a database.
-  - Implement logging for data processing activities for audit purposes.
+  - Validate input data to prevent injection attacks.
+  - Ensure data privacy by anonymizing sensitive information if necessary.
 
 - **Scalability Aspects:**
-  - Design the system to be modular, allowing for easy integration with additional data sources or export formats.
-  - Consider using parallel processing techniques for handling very large datasets.
+  - Design the system to handle increasing data volumes by optimizing data processing and storage.
+  - Consider using distributed computing frameworks if data size exceeds local processing capabilities.
