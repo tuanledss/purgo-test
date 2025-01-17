@@ -2,82 +2,87 @@
 #### 1. Component Architecture
 
 - **Major Components and Interactions:**
-  - **Data Ingestion Module:** Responsible for reading the CSV file and converting it into a DataFrame.
-  - **Data Transformation Module:** Converts the DataFrame into a dictionary format for further processing.
-  - **Data Validation Module:** Ensures data integrity and quality by applying validation rules.
-  - **Error Handling Module:** Manages errors during data ingestion and transformation.
-  
+  - **Data Ingestion Module:** Responsible for reading the CSV file and converting it into a pandas DataFrame.
+  - **Data Transformation Module:** Handles data cleaning, transformation, and preparation for analysis.
+  - **Data Analysis Module:** Performs statistical analysis and modeling on the prepared data.
+  - **Error Handling Module:** Manages exceptions and errors during data processing.
+
 - **Input/Output Interfaces:**
   - **Data Ingestion Module:**
-    - Input: CSV file path (e.g., '/dbfs/FileStore/winequality-white.csv')
-    - Output: Pandas DataFrame
+    - Input: CSV file path (string)
+    - Output: pandas DataFrame
   - **Data Transformation Module:**
-    - Input: Pandas DataFrame
-    - Output: List of dictionaries
-  - **Data Validation Module:**
-    - Input: List of dictionaries
-    - Output: Validated data or error messages
-  - **Error Handling Module:**
-    - Input: Error messages
-    - Output: Logs or alerts
+    - Input: pandas DataFrame
+    - Output: Cleaned and transformed pandas DataFrame
+  - **Data Analysis Module:**
+    - Input: Transformed pandas DataFrame
+    - Output: Analysis results (e.g., summary statistics, model predictions)
 
 - **Dependencies and External Systems:**
-  - **Pandas Library:** For data manipulation and transformation.
-  - **File System Access:** To read the CSV file.
+  - **pandas:** For data manipulation and analysis.
+  - **numpy:** For numerical operations.
+  - **scikit-learn:** For machine learning models (if applicable).
+  - **matplotlib/seaborn:** For data visualization (if applicable).
 
 #### 2. Data Flow
 
 - **Data Transformation Steps:**
-  1. **Read CSV File:** Use `pandas.read_csv()` to load data into a DataFrame.
-  2. **Convert DataFrame to Dictionary:** Use `DataFrame.to_dict(orient='records')` to convert the DataFrame into a list of dictionaries.
-  3. **Validate Data:** Apply validation rules to ensure data quality.
+  1. **Read CSV File:** Use `pandas.read_csv()` with `delimiter=';'` to read the CSV file.
+  2. **Data Cleaning:** Handle missing values, remove duplicates, and correct data types.
+  3. **Feature Engineering:** Create new features if necessary, such as interaction terms or normalized features.
 
 - **Data Formats and Schemas:**
-  - **CSV Format:** Semicolon-separated values with columns such as "fixed acidity," "volatile acidity," etc.
-  - **DataFrame Schema:** Columns corresponding to CSV headers.
-  - **Dictionary Format:** Each dictionary represents a row with keys as column names.
+  - **CSV File:** Delimited by semicolons (`;`).
+  - **DataFrame Schema:**
+    - Columns: `fixed acidity`, `volatile acidity`, `citric acid`, `residual sugar`, `chlorides`, `free sulfur dioxide`, `total sulfur dioxide`, `density`, `pH`, `sulphates`, `alcohol`, `quality`
+    - Data Types: All columns are float except `quality` which is integer.
 
 - **Validation Rules and Error Handling:**
   - **Validation Rules:**
-    - Ensure all required columns are present.
-    - Check for non-null values in critical columns.
-    - Validate data types (e.g., numeric values for acidity).
-  - **Error Handling:**
-    - Log errors if the CSV file is missing or corrupted.
-    - Raise exceptions for data validation failures.
+    - Ensure all columns are present in the DataFrame.
+    - Validate data types for each column.
+    - Check for missing values and handle them appropriately (e.g., imputation or removal).
+  - **Error Scenarios:**
+    - File not found: Raise a `FileNotFoundError` with a descriptive message.
+    - Incorrect delimiter: Raise a `ValueError` if the data cannot be parsed correctly.
 
 #### 3. Implementation Steps
 
 - **Development Steps:**
   1. **Implement Data Ingestion Module:**
      - Use `pandas.read_csv()` to read the CSV file.
-     - Acceptance Criteria: Successfully read and display the first few rows of the DataFrame.
+     - Parameterize the file path for flexibility.
   2. **Implement Data Transformation Module:**
-     - Convert the DataFrame to a list of dictionaries.
-     - Acceptance Criteria: Verify the conversion by checking the first few dictionary entries.
-  3. **Implement Data Validation Module:**
-     - Apply validation rules to the data.
-     - Acceptance Criteria: Ensure data passes all validation checks.
+     - Clean the data by handling missing values and duplicates.
+     - Convert data types as necessary.
+  3. **Implement Data Analysis Module:**
+     - Perform exploratory data analysis (EDA).
+     - Implement any required statistical models or machine learning algorithms.
   4. **Implement Error Handling Module:**
-     - Add error handling for file reading and data validation.
-     - Acceptance Criteria: Proper error messages are logged or displayed.
+     - Add try-except blocks to handle file reading and data processing errors.
 
 - **Order of Implementation:**
   1. Data Ingestion Module
   2. Data Transformation Module
-  3. Data Validation Module
+  3. Data Analysis Module
   4. Error Handling Module
+
+- **Acceptance Criteria:**
+  - Data Ingestion Module correctly reads the CSV file into a DataFrame.
+  - Data Transformation Module outputs a cleaned and transformed DataFrame.
+  - Data Analysis Module provides accurate analysis results.
+  - Error Handling Module effectively manages and logs errors.
 
 #### 4. Technical Considerations
 
 - **Performance Requirements:**
-  - Ensure efficient reading and processing of large CSV files.
-  - Optimize data transformation to minimize memory usage.
+  - Ensure efficient data processing by optimizing DataFrame operations.
+  - Use vectorized operations in pandas to improve performance.
 
 - **Security Considerations:**
-  - Validate file paths to prevent unauthorized access.
+  - Validate file paths to prevent directory traversal attacks.
   - Sanitize input data to prevent injection attacks.
 
 - **Scalability Aspects:**
-  - Design modules to handle increasing data volumes.
-  - Consider parallel processing for data validation to improve performance.
+  - Design the system to handle larger datasets by using chunk processing in pandas.
+  - Consider using distributed computing frameworks like Dask if data size exceeds memory limits.
