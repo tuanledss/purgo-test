@@ -1,10 +1,10 @@
 Feature: Comprehensive Analysis and Specification
 
   Scenario: Analyze and specify requirements based on provided context
-    Given the requirements are provided as "hihihih"
-    And the previous analysis indicates missing or incomplete Jira ticket description
-    And the context is not provided
-    When the analysis is performed
-    Then the system should request the necessary details for a complete analysis
-    And the system should log the missing information for further review
-    And the system should notify the user about the incomplete context
+    Given the requirements are incomplete or missing
+    And the previous analysis indicates a lack of necessary details
+    When the user provides the necessary details and context
+    Then perform a comprehensive analysis of the provided information
+    And create a detailed technical design specification
+    And ensure all requirements are clearly defined and documented
+    And validate the specification with the user for accuracy and completeness
