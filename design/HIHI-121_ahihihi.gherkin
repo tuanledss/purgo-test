@@ -1,6 +1,10 @@
-Feature: Placeholder Feature
+Feature: Comprehensive Analysis and Specification
 
-  Scenario: Placeholder Scenario
-    Given the context is incomplete
-    When the necessary details are missing
-    Then request for additional information to perform analysis
+  Scenario: Analyze and specify requirements based on provided context
+    Given the requirements are provided as "hihihih"
+    And the previous analysis indicates missing or incomplete Jira ticket description
+    And the context is not provided
+    When the analysis is performed
+    Then the system should request the necessary details for a complete analysis
+    And the system should log the missing information for further review
+    And the system should notify the user about the incomplete context
