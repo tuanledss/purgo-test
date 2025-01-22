@@ -1,0 +1,30 @@
+Feature: Comprehensive Project Analysis
+
+  Background:
+    Given a project with missing information
+    And the need for a detailed analysis
+
+  Scenario: Gather detailed project description
+    Given the need to understand the project's scope and purpose
+    When I contact the Project Manager
+    Then I should ask "Can you provide a detailed description of the project and its goals?"
+
+  Scenario: Identify specific objectives and deliverables
+    Given the need to clarify project aims and outcomes
+    When I contact the Product Owner
+    Then I should ask "What are the specific objectives and deliverables expected from this project?"
+
+  Scenario: Understand stakeholder requirements and expectations
+    Given the need to align with stakeholder needs
+    When I contact the Key Stakeholders
+    Then I should ask "Who are the key stakeholders, and what are their requirements and expectations?"
+
+  Scenario: Determine timeline and milestones
+    Given the need to plan and prioritize tasks
+    When I contact the Project Manager
+    Then I should ask "What is the timeline for the project, and what are the critical milestones?"
+
+  Scenario: Assess resource allocation and budget constraints
+    Given the need to assess feasibility and resource distribution
+    When I contact the Project Manager
+    Then I should ask "What resources are allocated to this project, and are there any budget constraints?"
