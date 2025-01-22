@@ -2,7 +2,7 @@ Feature: Comprehensive Project Analysis
 
   Background:
     Given a project with missing information
-    And the need to gather detailed requirements
+    And the need for a comprehensive analysis
 
   Scenario: Gather detailed project description
     When I contact the project manager
@@ -32,9 +32,9 @@ Feature: Comprehensive Project Analysis
   Scenario: Identify technical requirements and constraints
     When I contact the technical lead
     And I ask "Are there any specific technical requirements or constraints we need to be aware of?"
-    Then I should understand the technical implementation and potential limitations
+    Then I should be guided on the technical implementation and potential limitations
 
-  Scenario: Determine dependencies and integration points
+  Scenario: Understand dependencies and integration points
     When I contact the technical lead
     And I ask "What are the dependencies and integration points with other systems or projects?"
     Then I should ensure compatibility and coordination with other systems or projects
