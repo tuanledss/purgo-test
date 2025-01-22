@@ -1,0 +1,45 @@
+Feature: Comprehensive Project Analysis
+
+  Background:
+    Given a project with missing information
+    And the need to gather detailed requirements
+
+  Scenario: Gather detailed project description
+    When I contact the project manager
+    And I ask "Can you provide a detailed description of the project and its goals?"
+    Then I should receive a clear understanding of the project's scope and purpose
+
+  Scenario: Identify specific objectives and deliverables
+    When I contact the product owner
+    And I ask "What are the specific objectives and deliverables for this project?"
+    Then I should identify what needs to be achieved and delivered
+
+  Scenario: Gather stakeholder information
+    When I contact the stakeholders or clients
+    And I ask "Who are the key stakeholders, and what are their roles?"
+    Then I should identify who is involved and their roles
+
+  Scenario: Determine timeline and deadlines
+    When I contact the project manager
+    And I ask "What is the timeline for this project, including any critical deadlines?"
+    Then I should understand the timeline for planning and prioritizing tasks
+
+  Scenario: Assess resource allocation and budget
+    When I contact the project manager
+    And I ask "What resources and budget are allocated for this project?"
+    Then I should determine feasibility and resource planning
+
+  Scenario: Identify technical requirements and constraints
+    When I contact the technical lead
+    And I ask "Are there any specific technical requirements or constraints we need to be aware of?"
+    Then I should understand the technical implementation and potential limitations
+
+  Scenario: Determine dependencies and integration points
+    When I contact the technical lead
+    And I ask "What are the dependencies and integration points with other systems or projects?"
+    Then I should ensure compatibility and coordination with other systems or projects
+
+  Scenario: Define acceptance criteria
+    When I contact the product owner
+    And I ask "What are the acceptance criteria for this project?"
+    Then I should define what success looks like and how it will be measured
