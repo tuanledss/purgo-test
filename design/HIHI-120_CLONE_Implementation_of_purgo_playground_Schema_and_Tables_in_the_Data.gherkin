@@ -1,11 +1,70 @@
-Feature: SQL Script Execution for purgo_playground Schema
+Feature: SQL Script Execution for Schema and Table Creation
 
-  As a database developer,
-  I need to execute an SQL script that creates the purgo_playground schema and its associated tables in the database.
-  The script should also drop existing tables if they are present to ensure the structure meets the application's requirements.
+  Scenario: Execute SQL script to create purgo_playground schema and tables
+    Given a database connection is established
+    When the SQL script is executed
+    Then the purgo_playground schema should exist in the database
+    And the following tables should be created in the purgo_playground schema:
+      | Table Name     |
+      | programs       |
+      | interactions   |
+      | f_order        |
+      | f_item         |
+      | f_inv_movmnt   |
+      | f_events       |
+      | enrollments    |
+      | d_product      |
+      | countries      |
+      | f_sales        |
+      | psek           |
+      | pchk           |
+      | parl           |
+      | pbev           |
+      | l009t          |
+      | vbax           |
+      | para           |
+    And each table should have the specified columns and data types
 
-  Background:
-    Given the database is accessible
-    And the SQL script is available
+  Scenario: Drop existing tables before recreating them
+    Given the purgo_playground schema exists in the database
+    When the SQL script is executed
+    Then any existing tables in the purgo_playground schema should be dropped
+    And new tables should be created as specified
 
-  Scenario: Create purgo_playground schema
+  Scenario: Verify table structure
+    Given the purgo_playground schema and tables are created
+    When the table structure is checked
+    Then the programs table should have the following columns:
+      | Column Name       | Data Type   |
+      | program_id        | BIGINT      |
+      | program_name      | STRING      |
+      | country_code      | STRING      |
+      | program_start_date| TIMESTAMP   |
+    And the interactions table should have the following columns:
+      | Column Name       | Data Type   |
+      | interaction_id    | BIGINT      |
+      | enrollment_id     | BIGINT      |
+      | interaction_date  | TIMESTAMP   |
+    And the f_order table should have the following columns:
+      | Column Name       | Data Type   |
+      | order_nbr         | STRING      |
+      | order_type        | BIGINT      |
+      | delivery_dt       | DECIMAL(38,0)|
+      | order_qty         | DOUBLE      |
+      | sched_dt          | DECIMAL(38,0)|
+      | expected_shipped_dt| DECIMAL(38,0)|
+      | actual_shipped_dt | DECIMAL(38,0)|
+      | order_line_nbr    | STRING      |
+      | loc_tracker_id    | STRING      |
+      | shipping_add      | STRING      |
+      | primary_qty       | DOUBLE      |
+      | open_qty          | DOUBLE      |
+      | shipped_qty       | DOUBLE      |
+      | order_desc        | STRING      |
+      | flag_return       | STRING      |
+      | flag_cancel       | STRING      |
+      | cancel_dt         | DECIMAL(38,0)|
+      | cancel_qty        | DOUBLE      |
+      | crt_dt            | TIMESTAMP   |
+      | updt_dt           | TIMESTAMP   |
+    # Additional table structures can be verified similarly
