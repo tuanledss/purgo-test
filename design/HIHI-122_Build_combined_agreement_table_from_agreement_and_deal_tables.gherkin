@@ -1,0 +1,30 @@
+Feature: Build or Replace Combined Agreement Table
+
+  Background:
+    Given the following tables exist:
+      | Table Name          | Columns                                                                                   |
+      | agreement           | agree_no, agree_desc, agree_type, agree_type_desc, agree_from_dt, agree_end_dt, source_country, crt_dt, source_customer_id, master_agreement_type, material_number |
+      | deal                | deal, agree_type, material_number, master_agreement_type, source_customer_id              |
+      | customer            | source_customer_id, address1, state, city, postal_code                                    |
+      | combined_agreement  | agree_no, agree_desc, agree_type, material_number, master_agreement_type, source_customer_id, address1, state, city, postal_code |
+
+  Scenario: Build or replace the combined_agreement table
+    Given a need to integrate data from agreement, deal, and customer tables
+    When joining the agreement table with the customer table using source_customer_id
+    And joining the deal table with the customer table using source_customer_id
+    Then a SQL query should be developed to create or replace the combined_agreement table
+    And the combined_agreement table should include the following columns:
+      | Column Name            |
+      | agree_no               |
+      | agree_desc             |
+      | agree_type             |
+      | material_number        |
+      | master_agreement_type  |
+      | source_customer_id     |
+      | address1               |
+      | state                  |
+      | city                   |
+      | postal_code            |
+    And the combined_agreement table should accurately reflect the integrated data
+    And handle any missing or conflicting source_customer_id values appropriately
+    And ensure data consistency and uniqueness across all tables
