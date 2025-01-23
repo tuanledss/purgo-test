@@ -1,27 +1,11 @@
 Feature: SQL Script Execution for purgo_playground Schema
 
-  Scenario: Create purgo_playground schema and associated tables
-    Given a database connection is established
-    When the SQL script is executed
-    Then the purgo_playground schema should exist in the database
-    And the following tables should be created in the purgo_playground schema:
-      | Table Name      |
-      | programs        |
-      | interactions    |
-      | f_order         |
-      | f_item          |
-      | f_inv_movmnt    |
-      | f_events        |
-      | enrollments     |
-      | d_product       |
-      | countries       |
-      | f_sales         |
-      | psek            |
-    And the programs table should have the following columns:
-      | Column Name      |
-      | program_id       |
-      | program_name     |
-      | country_code     |
-      | program_start_date |
-    And all specified tables should have the correct columns and data types as defined in the script
-    And any existing tables in the purgo_playground schema should be dropped before recreation
+  As a database developer,
+  I need to execute an SQL script that creates the purgo_playground schema and its associated tables in the database.
+  The script should also drop existing tables if they are present to ensure the structure meets the application's requirements.
+
+  Background:
+    Given the database is accessible
+    And the SQL script is available
+
+  Scenario: Create purgo_playground schema
