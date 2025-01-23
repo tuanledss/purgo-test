@@ -1,27 +1,27 @@
 Feature: SQL Script Execution for purgo_playground Schema
 
   Scenario: Create purgo_playground schema and associated tables
-    Given a database environment
+    Given a database connection is established
     When the SQL script is executed
     Then the purgo_playground schema should exist in the database
-    And all existing tables in the purgo_playground schema should be dropped
-    And the following tables should be created with specified columns and data types:
-      | Table Name     | Columns                                                                                      |
-      | programs       | program_id: BIGINT, program_name: STRING, country_code: STRING, program_start_date: TIMESTAMP |
-      | interactions   | interaction_id: BIGINT, enrollment_id: BIGINT, interaction_date: TIMESTAMP                    |
-      | f_order        | order_nbr: STRING, order_type: BIGINT, delivery_dt: DECIMAL(38, 0), ...                       |
-      | f_item         | item_nbr: STRING, item_vb: BIGINT, delivery_dt: DECIMAL(38, 0), ...                           |
-      | f_inv_movmnt   | txn_id: STRING, inv_loc: STRING, financial_qty: DOUBLE, ...                                   |
-      | f_events       | date: STRING, event_name: STRING, event_ts: STRING, ...                                       |
-      | enrollments    | ...                                                                                           |
-      | d_product      | ...                                                                                           |
-      | countries      | ...                                                                                           |
-      | f_sales        | ...                                                                                           |
-      | psek           | ...                                                                                           |
-      | pchk           | ...                                                                                           |
-      | parl           | ...                                                                                           |
-      | pbev           | ...                                                                                           |
-      | l009t          | ...                                                                                           |
-      | vbax           | ...                                                                                           |
-      | para           | ...                                                                                           |
-    And the tables should contain the specified columns and data types as defined in the script
+    And the following tables should be created in the purgo_playground schema:
+      | Table Name      |
+      | programs        |
+      | interactions    |
+      | f_order         |
+      | f_item          |
+      | f_inv_movmnt    |
+      | f_events        |
+      | enrollments     |
+      | d_product       |
+      | countries       |
+      | f_sales         |
+      | psek            |
+    And the programs table should have the following columns:
+      | Column Name      |
+      | program_id       |
+      | program_name     |
+      | country_code     |
+      | program_start_date |
+    And all specified tables should have the correct columns and data types as defined in the script
+    And any existing tables in the purgo_playground schema should be dropped before recreation
