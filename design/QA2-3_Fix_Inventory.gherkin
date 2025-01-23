@@ -1,0 +1,16 @@
+Feature: Modify Database Schema
+
+  Scenario: Add lastdate to employees table
+    Given the database schema is up to date
+    When I add a "lastdate" column to the "employees" table
+    Then the "lastdate" column should be of date type
+    And the default value should be set to the current date
+    And all existing employee records should have the default "lastdate"
+
+  Scenario: Add categoryGroup to customers table
+    Given the database schema is up to date
+    When I add a "categoryGroup" column to the "customers" table
+    Then the "categoryGroup" column should be of string type
+    And it should accept predefined categories such as "VIP", "Regular", "New"
+    And a validation should ensure it only contains valid categories
+    And all existing customer records should have "Uncategorized" as the default value
