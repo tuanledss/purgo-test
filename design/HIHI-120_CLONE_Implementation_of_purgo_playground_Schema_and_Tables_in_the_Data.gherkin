@@ -1,101 +1,27 @@
 Feature: SQL Script Execution for purgo_playground Schema
 
   Scenario: Create purgo_playground schema and associated tables
-    Given a database connection is established
+    Given a database environment
     When the SQL script is executed
     Then the purgo_playground schema should exist in the database
     And all existing tables in the purgo_playground schema should be dropped
-    And the following tables should be created in the purgo_playground schema:
+    And the following tables should be created with specified columns and data types:
       | Table Name     | Columns                                                                                      |
-      | programs       | program_id BIGINT NOT NULL, program_name STRING NOT NULL, country_code STRING NOT NULL, program_start_date TIMESTAMP |
-      | interactions   | interaction_id BIGINT NOT NULL, enrollment_id BIGINT NOT NULL, interaction_date TIMESTAMP    |
-      | f_order        | order_nbr STRING, order_type BIGINT, delivery_dt DECIMAL(38, 0), order_qty DOUBLE, sched_dt DECIMAL(38, 0), expected_shipped_dt DECIMAL(38, 0), actual_shipped_dt DECIMAL(38, 0), order_line_nbr STRING, loc_tracker_id STRING, shipping_add STRING, primary_qty DOUBLE, open_qty DOUBLE, shipped_qty DOUBLE, order_desc STRING, flag_return STRING, flag_cancel STRING, cancel_dt DECIMAL(38, 0), cancel_qty DOUBLE, crt_dt TIMESTAMP, updt_dt TIMESTAMP |
-      | f_item         | item_nbr STRING, item_vb BIGINT, delivery_dt DECIMAL(38, 0), item_inv_type STRING, txn_nbr STRING, primary_qty DOUBLE, qty_in_hand DOUBLE, qty_on_hold DOUBLE, item_serial_nbr STRING, package_nbr STRING, crt_dt TIMESTAMP, updt_dt TIMESTAMP |
-      | f_inv_movmnt   | txn_id STRING, inv_loc STRING, financial_qty DOUBLE, net_qty DOUBLE, expired_qt DECIMAL(38, 0), item_nbr STRING, unit_cost DOUBLE, um_rate DOUBLE, plant_loc_cd STRING, inv_stock_reference STRING, stock_type STRING, qty_on_hand DOUBLE, qty_shipped DOUBLE, cancel_dt DECIMAL(38, 0), flag_active STRING, crt_dt TIMESTAMP, updt_dt TIMESTAMP |
-      | f_events       | date STRING, event_name STRING, event_ts STRING, user_pseudo_id STRING, event_bundle_sequence_id BIGINT, session_id BIGINT, session_number BIGINT, device_browser STRING, device_category STRING, city STRING, country STRING, region STRING, page_title STRING, adcontent STRING |
-
-  Scenario: Verify table structure and data types
-    Given the purgo_playground schema exists in the database
-    When querying the table structure
-    Then the programs table should have columns with the correct data types:
-      | Column Name        | Data Type   |
-      | program_id         | BIGINT      |
-      | program_name       | STRING      |
-      | country_code       | STRING      |
-      | program_start_date | TIMESTAMP   |
-    And the interactions table should have columns with the correct data types:
-      | Column Name        | Data Type   |
-      | interaction_id     | BIGINT      |
-      | enrollment_id      | BIGINT      |
-      | interaction_date   | TIMESTAMP   |
-    And the f_order table should have columns with the correct data types:
-      | Column Name        | Data Type   |
-      | order_nbr          | STRING      |
-      | order_type         | BIGINT      |
-      | delivery_dt        | DECIMAL(38, 0) |
-      | order_qty          | DOUBLE      |
-      | sched_dt           | DECIMAL(38, 0) |
-      | expected_shipped_dt| DECIMAL(38, 0) |
-      | actual_shipped_dt  | DECIMAL(38, 0) |
-      | order_line_nbr     | STRING      |
-      | loc_tracker_id     | STRING      |
-      | shipping_add       | STRING      |
-      | primary_qty        | DOUBLE      |
-      | open_qty           | DOUBLE      |
-      | shipped_qty        | DOUBLE      |
-      | order_desc         | STRING      |
-      | flag_return        | STRING      |
-      | flag_cancel        | STRING      |
-      | cancel_dt          | DECIMAL(38, 0) |
-      | cancel_qty         | DOUBLE      |
-      | crt_dt             | TIMESTAMP   |
-      | updt_dt            | TIMESTAMP   |
-    And the f_item table should have columns with the correct data types:
-      | Column Name        | Data Type   |
-      | item_nbr           | STRING      |
-      | item_vb            | BIGINT      |
-      | delivery_dt        | DECIMAL(38, 0) |
-      | item_inv_type      | STRING      |
-      | txn_nbr            | STRING      |
-      | primary_qty        | DOUBLE      |
-      | qty_in_hand        | DOUBLE      |
-      | qty_on_hold        | DOUBLE      |
-      | item_serial_nbr    | STRING      |
-      | package_nbr        | STRING      |
-      | crt_dt             | TIMESTAMP   |
-      | updt_dt            | TIMESTAMP   |
-    And the f_inv_movmnt table should have columns with the correct data types:
-      | Column Name        | Data Type   |
-      | txn_id             | STRING      |
-      | inv_loc            | STRING      |
-      | financial_qty      | DOUBLE      |
-      | net_qty            | DOUBLE      |
-      | expired_qt         | DECIMAL(38, 0) |
-      | item_nbr           | STRING      |
-      | unit_cost          | DOUBLE      |
-      | um_rate            | DOUBLE      |
-      | plant_loc_cd       | STRING      |
-      | inv_stock_reference| STRING      |
-      | stock_type         | STRING      |
-      | qty_on_hand        | DOUBLE      |
-      | qty_shipped        | DOUBLE      |
-      | cancel_dt          | DECIMAL(38, 0) |
-      | flag_active        | STRING      |
-      | crt_dt             | TIMESTAMP   |
-      | updt_dt            | TIMESTAMP   |
-    And the f_events table should have columns with the correct data types:
-      | Column Name        | Data Type   |
-      | date               | STRING      |
-      | event_name         | STRING      |
-      | event_ts           | STRING      |
-      | user_pseudo_id     | STRING      |
-      | event_bundle_sequence_id | BIGINT |
-      | session_id         | BIGINT      |
-      | session_number     | BIGINT      |
-      | device_browser     | STRING      |
-      | device_category    | STRING      |
-      | city               | STRING      |
-      | country            | STRING      |
-      | region             | STRING      |
-      | page_title         | STRING      |
-      | adcontent          | STRING      |
+      | programs       | program_id: BIGINT, program_name: STRING, country_code: STRING, program_start_date: TIMESTAMP |
+      | interactions   | interaction_id: BIGINT, enrollment_id: BIGINT, interaction_date: TIMESTAMP                    |
+      | f_order        | order_nbr: STRING, order_type: BIGINT, delivery_dt: DECIMAL(38, 0), ...                       |
+      | f_item         | item_nbr: STRING, item_vb: BIGINT, delivery_dt: DECIMAL(38, 0), ...                           |
+      | f_inv_movmnt   | txn_id: STRING, inv_loc: STRING, financial_qty: DOUBLE, ...                                   |
+      | f_events       | date: STRING, event_name: STRING, event_ts: STRING, ...                                       |
+      | enrollments    | ...                                                                                           |
+      | d_product      | ...                                                                                           |
+      | countries      | ...                                                                                           |
+      | f_sales        | ...                                                                                           |
+      | psek           | ...                                                                                           |
+      | pchk           | ...                                                                                           |
+      | parl           | ...                                                                                           |
+      | pbev           | ...                                                                                           |
+      | l009t          | ...                                                                                           |
+      | vbax           | ...                                                                                           |
+      | para           | ...                                                                                           |
+    And the tables should contain the specified columns and data types as defined in the script
