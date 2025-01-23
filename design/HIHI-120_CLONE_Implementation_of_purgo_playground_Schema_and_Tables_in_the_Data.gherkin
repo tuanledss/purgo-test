@@ -1,44 +1,12 @@
 Feature: SQL Script Execution for purgo_playground Schema
 
-  As a database developer,
-  I need to execute an SQL script that creates the purgo_playground schema and its associated tables in the database.
-  The script should also drop existing tables if they are present to ensure the structure meets the application's requirements.
-
   Background:
-    Given the database is accessible
-    And the SQL script is available
+    Given a database connection is established
 
   Scenario: Create purgo_playground schema and tables
     Given the purgo_playground schema does not exist
     When I execute the SQL script
     Then the purgo_playground schema should be created
-    And all existing tables in the purgo_playground schema should be dropped
-    And the following tables should be created with specified columns:
-      | Table Name     | Columns                                                                                     |
-      | programs       | program_id, program_name, country_code, program_start_date                                  |
-      | interactions   | interaction_id, enrollment_id, interaction_date                                             |
-      | f_order        | order_nbr, order_type, delivery_dt, order_qty, sched_dt, expected_shipped_dt, actual_shipped_dt, order_line_nbr, loc_tracker_id, shipping_add, primary_qty, open_qty, shipped_qty, order_desc, flag_return, flag_cancel, cancel_dt, cancel_qty, crt_dt, updt_dt |
-      | f_item         | item_nbr, item_vb, delivery_dt, item_inv_type, txn_nbr, primary_qty, qty_in_hand, qty_on_hold, item_serial_nbr, package_nbr, crt_dt, updt_dt |
-      | f_inv_movmnt   | txn_id, inv_loc, financial_qty, net_qty, expired_qt, item_nbr, unit_cost, um_rate, plant_loc_cd, inv_stock_reference, stock_type, qty_on_hand, qty_shipped, cancel_dt, flag_active, crt_dt, updt_dt |
-      | f_events       | date, event_name, event_ts, user_pseudo_id, event_bundle_sequence_id, session_id, session_number, device_browser, device_category, city, country, region, page_title, adcontent, campaign, traffic_source, traffic_medium, referral_path, keyword, session_engaged, content, search_query, form_name, navigation_item_type, navigation_item_name, content_name, engagement_time |
-      | enrollments    | enrollment_id, program_id, enrollment_date                                                  |
-      | d_product      | prod_id, item_nbr, unit_cost, prod_exp_dt, cost_per_pkg, plant_add, plant_loc_cd, prod_line, stock_type, pre_prod_days, sellable_qty, prod_ordr_tracker_nbr, max_order_qty, flag_active, crt_dt, updt_dt |
-      | countries      | country_code, country_name                                                                  |
-      | f_sales        | sale_id, product_id, sale_date, sale_amount                                                 |
-      | psek           | psek_id, description, value                                                                 |
-      | pchk           | pchk_id, description, value                                                                 |
-      | parl           | parl_id, description, value                                                                 |
-      | pbev           | pbev_id, description, value                                                                 |
-      | l009t          | l009t_id, description, value                                                                |
-      | vbax           | vbax_id, description, value                                                                 |
-      | para           | para_id, description, value                                                                 |
 
-  Scenario: Verify schema and table creation
-    Given the SQL script has been executed
-    Then the purgo_playground schema should exist in the database
-    And the following tables should exist with correct columns and data types:
-      | Table Name     | Columns                                                                                     |
-      | programs       | program_id BIGINT, program_name STRING, country_code STRING, program_start_date TIMESTAMP   |
-      | interactions   | interaction_id BIGINT, enrollment_id BIGINT, interaction_date TIMESTAMP                     |
-      | f_order        | order_nbr STRING, order_type BIGINT, delivery_dt DECIMAL(38, 0), order_qty DOUBLE, sched_dt DECIMAL(38, 0), expected_shipped_dt DECIMAL(38, 0), actual_shipped_dt DECIMAL(38, 0), order_line_nbr STRING, loc_tracker_id STRING, shipping_add STRING, primary_qty DOUBLE, open_qty DOUBLE, shipped_qty DOUBLE, order_desc STRING, flag_return STRING, flag_cancel STRING, cancel_dt DECIMAL(38, 0), cancel_qty DOUBLE, crt_dt TIMESTAMP, updt_dt TIMESTAMP |
-      | f_item         | item_nbr STRING, item_vb BIGINT, delivery_dt DECIMAL(38, 0), item_inv_type STRING, txn_nbr STRING, primary_qty DOUBLE, qty_in_hand DOUBLE, qty_on_hold DOUBLE, item_serial_nbr STRING, package_nbr STRING, crt_dt TIMESTAMP,
+  Scenario: Drop existing tables in purgo_playground schema
+    Given the purgo_playground schema exists
