@@ -1,0 +1,152 @@
+Feature: Calculate Days on Hand (DOH) and associated KPIs for Inventory Management
+
+  Background:
+    Given the Unity Catalog Schema is set to "purgo_playground"
+    And the source tables "f_inv_movmnt" and "f_sales" are available
+    And the target tables "doh_metrics" and "doh_kpis" are available
+
+  Scenario Outline: Calculate DOH for a given item over a quarter
+    Given the quarter start date is "<Quarter_Start_Date>"
+    And the quarter end date is "<Quarter_End_Date>"
+    When the average inventory is calculated from "f_inv_movmnt" using item number "<Item_Nbr>"
+      And the average daily sales is calculated from "f_sales" using item number "<Item_Nbr>"
+    Then the DOH is calculated as ( <Avg_Inventory> / <Avg_Daily_Sales> ) * 365
+      And the result is stored in "doh_metrics" with item number "<Item_Nbr>"
+
+    Examples:
+      | Quarter_Start_Date | Quarter_End_Date | Item_Nbr | Avg_Inventory | Avg_Daily_Sales |
+      | 2023-01-01          | 2023-03-31        | ITEM001  | 1000.0        | 50.0             |
+      | 2023-04-01          | 2023-06-30        | ITEM002  | 1500.0        | 75.0             |
+
+  Scenario: Handle zero average daily sales during DOH calculation
+    Given the quarter start date is "2023-07-01"
+    And the quarter end date is "2023-09-30"
+    When the average inventory is calculated from "f_inv_movmnt" using item number "ITEM003"
+      And the average daily sales is calculated from "f_sales" using item number "ITEM003" resulting in 0.0
+    Then an error is raised with message "Average Daily Sales cannot be zero for DOH calculation"
+
+  Scenario Outline: Validate data integrity before DOH calculation
+    Given the source table "f_inv_movmnt" contains data for item number "<Item_Nbr>"
+      And the source table "f_sales" contains data for item number "<Item_Nbr>"
+    When data validation is performed for item number "<Item_Nbr>"
+    Then the data should have non-null "financial_qty" and "qty_sold"
+      And the "flag_active" field is "Y"
+      And no records have "cancel_dt" within the quarter
+
+    Examples:
+      | Item_Nbr |
+      | ITEM001  |
+      | ITEM002  |
+      | ITEM003  |
+
+  Scenario: Calculate KPI metrics after DOH calculation
+    Given DOH metrics have been calculated for all items in the quarter "2023-01-01" to "2023-03-31"
+    When the average DOH is calculated from "doh_metrics"
+      And the standard deviation of DOH is calculated from "doh_metrics"
+    Then the KPI metrics are stored in "doh_kpis" with values:
+      | avg_doh | stddev_doh |
+      | 730.0   | 50.0       |
+
+  Scenario Outline: Generate SQL for DOH calculation
+    Given the quarter start date is "<Quarter_Start_Date>"
+    And the quarter end date is "<Quarter_End_Date>"
+    When the SQL query for DOH calculation is generated for item number "<Item_Nbr>"
+    Then the SQL should include:
+      | SELECT_clause                                       |
+      | SELECT item_nbr, (AVG(qty_on_hand) / AVG(qty_sold)) * 365 AS doh |
+      | FROM purgo_playground.f_inv_movmnt AS inv              |
+      | JOIN purgo_playground.f_sales AS sales ON inv.item_nbr = sales.item_nbr |
+      | WHERE inv.crt_dt BETWEEN '<Quarter_Start_Date>' AND '<Quarter_End_Date>' |
+      | AND sales.crt_dt BETWEEN '<Quarter_Start_Date>' AND '<Quarter_End_Date>' |
+      | GROUP BY item_nbr                                     |
+
+    Examples:
+      | Quarter_Start_Date | Quarter_End_Date | Item_Nbr |
+      | 2023-01-01          | 2023-03-31        | ITEM001  |
+      | 2023-04-01          | 2023-06-30        | ITEM002  |
+
+  Scenario: Store DOH results in the target table
+    Given the DOH for item "ITEM004" is calculated as 365.0
+    When the DOH is inserted into "doh_metrics"
+    Then the table "doh_metrics" should contain:
+      | item_nbr | avg_inventory | avg_daily_sales | doh  |
+      | ITEM004  | 1000.0        | 50.0             | 365.0 |
+
+  Scenario Outline: Validate error handling for missing data
+    Given the quarter start date is "<Quarter_Start_Date>"
+    And the quarter end date is "<Quarter_End_Date>"
+    When the average inventory is calculated from "f_inv_movmnt" using item number "<Item_Nbr>" with missing "<Missing_Field>"
+    Then an error is raised with message "<Error_Message>"
+
+    Examples:
+      | Quarter_Start_Date | Quarter_End_Date | Item_Nbr | Missing_Field | Error_Message                          |
+      | 2023-01-01          | 2023-03-31        | ITEM005  | qty_on_hand    | "Missing qty_on_hand for ITEM005"      |
+      | 2023-04-01          | 2023-06-30        | ITEM006  | qty_sold       | "Missing qty_sold for ITEM006"         |
+
+  Scenario: Ensure partial quarters are handled correctly
+    Given the quarter start date is "2023-07-01"
+    And the quarter end date is "2023-09-30"
+    When calculating the average inventory and average daily sales for a partial quarter
+    Then the calculations should consider only the days within the specified quarter
+
+  Scenario Outline: Calculate KPI with multiple DOH values
+    Given DOH metrics are available for multiple items
+    When the average DOH and standard deviation are calculated
+    Then the KPI metrics in "doh_kpis" should reflect the aggregated values
+      And the SQL should include:
+        | SELECT_clause                       |
+        | SELECT AVG(doh) AS avg_doh, STDDEV(doh) AS stddev_doh |
+        | FROM purgo_playground.doh_metrics    |
+
+    Examples:
+      | avg_doh | stddev_doh |
+      | 500.0   | 30.0       |
+      | 750.0   | 45.0       |
+
+  Scenario: Exclude certain inventory types from calculations
+    Given the inventory data includes various "stock_type" values
+    When calculating average inventory
+      And only "stock_type" is "ACTIVE"
+    Then inventory records with "stock_type" other than "ACTIVE" are excluded from the calculation
+
+  Scenario Outline: Handle expired inventory in DOH calculation
+    Given inventory records include "expired_qt" field
+    When calculating average inventory for item number "<Item_Nbr>"
+      And expired quantity "<Expired_Qt>" is present
+    Then expired inventory is excluded from the average inventory calculation
+
+    Examples:
+      | Item_Nbr | Expired_Qt |
+      | ITEM007  | 100        |
+      | ITEM008  | 50         |
+
+  Scenario: Validate timestamp fields during data processing
+    Given the source tables include "crt_dt" and "updt_dt" timestamp fields
+    When performing DOH calculations
+    Then records should be filtered based on "crt_dt" within the quarter
+      And "updt_dt" should be the latest timestamp for each record
+
+  Scenario Outline: Manage data transformation before calculations
+    Given raw data is present in "f_inv_movmnt" and "f_sales"
+    When data transformation is performed for item number "<Item_Nbr>"
+      And fields are cleaned and formatted correctly
+    Then transformed data is ready for DOH calculations
+      And any inconsistencies are resolved
+
+    Examples:
+      | Item_Nbr |
+      | ITEM009  |
+      | ITEM010  |
+
+  Scenario: Generate report after KPI calculation
+    Given KPI metrics are stored in "doh_kpis"
+    When a report is generated for the quarter "2023-01-01" to "2023-03-31"
+    Then the report should include "avg_doh" and "stddev_doh"
+      And the data format is compatible with Databricks SQL
+
+  Scenario: Ensure proper indexing on target tables for performance
+    Given the target tables "doh_metrics" and "doh_kpis" are used for large datasets
+    When indexing is applied to these tables
+    Then indexes should be created on "item_nbr" for "doh_metrics"
+      And indexes should be created on no specific columns for "doh_kpis"
+
