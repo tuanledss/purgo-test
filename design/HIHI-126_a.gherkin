@@ -1,0 +1,68 @@
+Feature: Unity Catalog Schema Analysis
+
+  Background:
+    Given the Unity Catalog Schema "purgo_playground" is available
+    And the schema details are provided, including table structures, relationships, and data types
+    And the attachments and context are available for analysis
+
+  Scenario: Successful Analysis with Complete Information
+    Given the schema details are complete and accurate
+    And the attachments and context are relevant and sufficient
+    When the analysis is performed with the provided information
+    Then the analysis should be successful
+    And the results should be accurate and comprehensive
+
+  Scenario Outline: Analysis with Missing Information
+    Given the schema details are <schema_details_status>
+    And the attachments and context are <attachments_context_status>
+    When the analysis is performed with the provided information
+    Then the analysis should <analysis_result>
+    And the error message should be <error_message>
+
+    Examples:
+      | schema_details_status | attachments_context_status | analysis_result | error_message |
+      | incomplete            | available                  | fail            | "Schema details are incomplete" |
+      | complete              | missing                    | fail            | "Attachments and context are missing" |
+      | missing               | available                  | fail            | "Schema details are missing" |
+      | complete              | incomplete                 | fail            | "Attachments and context are incomplete" |
+
+  Scenario: Successful Schema Validation
+    Given the schema details are complete and accurate
+    When the schema is validated against the provided data
+    Then the schema should be valid
+    And the validation results should be accurate and comprehensive
+
+  Scenario Outline: Schema Validation Errors
+    Given the schema details are complete and accurate
+    And the data contains <error_type> errors
+    When the schema is validated against the provided data
+    Then the schema validation should <validation_result>
+    And the error message should be <error_message>
+
+    Examples:
+      | error_type | validation_result | error_message |
+      | data type  | fail               | "Data type mismatch" |
+      | format     | fail               | "Invalid data format" |
+      | relationship | fail              | "Invalid relationship between tables" |
+
+  Scenario: Successful Data Modeling
+    Given the schema details are complete and accurate
+    And the data modeling considerations are taken into account
+    When the data modeling is performed
+    Then the data modeling should be successful
+    And the results should be accurate and comprehensive
+
+  Scenario Outline: Data Modeling Errors
+    Given the schema details are complete and accurate
+    And the data modeling considerations are <considerations_status>
+    When the data modeling is performed
+    Then the data modeling should <modeling_result>
+    And the error message should be <error_message>
+
+    Examples:
+      | considerations_status | modeling_result | error_message |
+      | ignored               | fail            | "Data modeling considerations ignored" |
+      | incomplete            | fail            | "Data modeling considerations are incomplete" |
+
+
+Note: The scenarios and examples are based on the provided requirements and may need to be updated or expanded upon once the missing information is provided.
