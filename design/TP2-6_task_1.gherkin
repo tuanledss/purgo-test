@@ -1,0 +1,58 @@
+Feature: Unity Catalog Schema Analysis
+
+  Background:
+    Given the Unity Catalog Schema "purgo_playground" is available
+    And the schema details are provided, including table structures, relationships, and data types
+    And the attachments and context are available for analysis
+
+  Scenario: Successful Analysis with Complete Information
+    Given the schema details for "purgo_playground" are provided
+    And the attachments and context are available
+    When the analysis is performed with complete information
+    Then the analysis should be successful
+    And the results should be accurate and comprehensive
+
+  Scenario Outline: Analysis with Missing Information
+    Given the schema details for "purgo_playground" are <schema_details>
+    And the attachments and context are <attachments_context>
+    When the analysis is performed with missing information
+    Then the analysis should fail with an error message <error_message>
+
+    Examples:
+      | schema_details | attachments_context | error_message |
+      | missing        | available          | "Schema details are required for analysis" |
+      | available      | missing            | "Attachments and context are required for analysis" |
+      | missing        | missing            | "Both schema details and attachments/context are required for analysis" |
+
+  Scenario: Analysis with Invalid Schema Details
+    Given the schema details for "purgo_playground" are invalid
+    When the analysis is performed with invalid schema details
+    Then the analysis should fail with an error message "Invalid schema details provided"
+
+  Scenario: Analysis with Invalid Attachments/Context
+    Given the attachments and context are invalid
+    When the analysis is performed with invalid attachments/context
+    Then the analysis should fail with an error message "Invalid attachments/context provided"
+
+  Scenario Outline: Validation of Schema Details
+    Given the schema details for "purgo_playground" are provided
+    When the schema details are validated
+    Then the validation should <validation_result> with an error message <error_message>
+
+    Examples:
+      | validation_result | error_message |
+      | pass              | ""            |
+      | fail              | "Invalid schema details: <specific_error>" |
+
+  Scenario Outline: Validation of Attachments/Context
+    Given the attachments and context are provided
+    When the attachments/context are validated
+    Then the validation should <validation_result> with an error message <error_message>
+
+    Examples:
+      | validation_result | error_message |
+      | pass              | ""            |
+      | fail              | "Invalid attachments/context: <specific_error>" |
+
+
+Note: The specific error messages and validation rules should be updated based on the actual requirements and schema details.
