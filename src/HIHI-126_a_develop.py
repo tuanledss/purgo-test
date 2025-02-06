@@ -4,18 +4,18 @@ from pyspark.sql import types as T
 from delta.tables import DeltaTable
 import logging
 
-# Initialize logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Create SparkSession
+# Initialize Spark session
 spark = SparkSession.builder \
-    .appName("Databricks Production Code") \
+    .appName("Databricks Delta Lake Example") \
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
     .getOrCreate()
 
-# Define schema for data
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Define schema
 schema = T.StructType([
     T.StructField("id", T.BigIntType(), True),
     T.StructField("name", T.StringType(), True),
@@ -28,49 +28,49 @@ schema = T.StructType([
     T.StructField("metadata", T.MapType(T.StringType(), T.StringType()), True)
 ])
 
-# Load data into DataFrame
-data_path = "/mnt/data/input_data"
-df = spark.read.schema(schema).json(data_path)
+# Load data
+data_path = "/mnt/delta/test_data"
+if DeltaTable.isDeltaTable(spark, data_path):
+    delta_table = DeltaTable.forPath(spark, data_path)
+else:
+    df = spark.createDataFrame([], schema)
+    df.write.format("delta").save(data_path)
+    delta_table = DeltaTable.forPath(spark, data_path)
 
-# Handle NULL values
-df = df.fillna({'name': 'Unknown', 'email': 'unknown@example.com'})
+# Function to merge data
+def merge_data(new_data):
+    try:
+        delta_table.alias("old").merge(
+            new_data.alias("new"),
+            "old.id = new.id"
+        ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
+        logger.info("Data merged successfully.")
+    except Exception as e:
+        logger.error(f"Error merging data: {e}")
 
-# Implement window function for analytics
-window_spec = F.window("created_at", "1 day")
-df = df.withColumn("daily_count", F.count("id").over(window_spec))
+# Example data
+new_data = spark.createDataFrame([
+    (1, "John Doe", "john.doe@example.com", "123-456-7890", "123 Main St", F.current_timestamp(), F.current_timestamp(), ["tag1", "tag2"], {"key1": "value1"}),
+    (2, "Jane Doe", "jane.doe@example.com", "987-654-3210", "456 Elm St", F.current_timestamp(), F.current_timestamp(), ["tag3", "tag4"], {"key2": "value2"})
+], schema)
 
-# Delta Lake table path
-delta_table_path = "/mnt/delta/test_data"
+# Merge new data
+merge_data(new_data)
 
-# Write data to Delta Lake
-df.write.format("delta").mode("overwrite").save(delta_table_path)
+# Optimize and vacuum
+spark.sql(f"OPTIMIZE delta.`{data_path}` ZORDER BY (id)")
+spark.sql(f"VACUUM delta.`{data_path}` RETAIN 0 HOURS")
 
-# Optimize Delta Lake table
-delta_table = DeltaTable.forPath(spark, delta_table_path)
-delta_table.optimize().executeZOrderBy("created_at")
+# Read data with time travel
+version_0_df = spark.read.format("delta").option("versionAsOf", 0).load(data_path)
+version_0_df.show()
 
-# Vacuum Delta Lake table
-delta_table.vacuum(168)  # Retain 7 days of history
-
-# Error handling and logging
-try:
-    # Example transformation
-    transformed_df = df.withColumn("name_upper", F.upper("name"))
-    transformed_df.show()
-except Exception as e:
-    logger.error("Error during transformation: %s", e)
-
-# Data quality checks
-invalid_data_df = df.filter(F.col("email").contains("invalid"))
-if invalid_data_df.count() > 0:
-    logger.warning("Found invalid email addresses")
-
-# Stop SparkSession
+# Stop Spark session
 spark.stop()
 
 
 
--- Create Delta Lake table with schema evolution
+-- Create Delta table
 CREATE TABLE IF NOT EXISTS purgo_playground.test_data (
   id BIGINT,
   name STRING,
@@ -82,28 +82,24 @@ CREATE TABLE IF NOT EXISTS purgo_playground.test_data (
   tags ARRAY<STRING>,
   metadata MAP<STRING, STRING>
 ) USING DELTA
-PARTITIONED BY (created_at)
-TBLPROPERTIES (
-  'delta.autoOptimize.optimizeWrite' = 'true',
-  'delta.autoOptimize.autoCompact' = 'true'
-);
+PARTITIONED BY (created_at);
 
--- Merge new data into Delta Lake table
+-- Insert data
 MERGE INTO purgo_playground.test_data AS target
-USING new_data AS source
+USING (
+  SELECT 1 AS id, 'John Doe' AS name, 'john.doe@example.com' AS email, '123-456-7890' AS phone, '123 Main St' AS address, current_timestamp() AS created_at, current_timestamp() AS updated_at, ARRAY('tag1', 'tag2') AS tags, MAP('key1', 'value1') AS metadata
+  UNION ALL
+  SELECT 2, 'Jane Doe', 'jane.doe@example.com', '987-654-3210', '456 Elm St', current_timestamp(), current_timestamp(), ARRAY('tag3', 'tag4'), MAP('key2', 'value2')
+) AS source
 ON target.id = source.id
 WHEN MATCHED THEN
   UPDATE SET *
 WHEN NOT MATCHED THEN
   INSERT *;
 
--- Optimize table for performance
-OPTIMIZE purgo_playground.test_data
-ZORDER BY (created_at);
+-- Optimize and vacuum
+OPTIMIZE purgo_playground.test_data ZORDER BY (id);
+VACUUM purgo_playground.test_data RETAIN 0 HOURS;
 
--- Vacuum old data
-VACUUM purgo_playground.test_data RETAIN 168 HOURS;
-
--- Validate data quality
-SELECT * FROM purgo_playground.test_data
-WHERE email LIKE '%invalid%';
+-- Time travel query
+SELECT * FROM purgo_playground.test_data TIMESTAMP AS OF '2024-03-21T00:00:00.000+0000';
