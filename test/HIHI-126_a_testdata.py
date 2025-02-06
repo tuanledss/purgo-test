@@ -1,97 +1,164 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql import types as T
+from pyspark.sql.types import StructType, StructField, StringType, TimestampType, DoubleType, DecimalType, ArrayType, MapType
 
 # Initialize Spark Session
 spark = SparkSession.builder.appName("Test Data Generation").getOrCreate()
 
 # Define schema for test data
-schema = T.StructType([
-    T.StructField("id", T.BigIntType(), True),
-    T.StructField("name", T.StringType(), True),
-    T.StructField("email", T.StringType(), True),
-    T.StructField("phone", T.StringType(), True),
-    T.StructField("address", T.StructType([
-        T.StructField("street", T.StringType(), True),
-        T.StructField("city", T.StringType(), True),
-        T.StructField("state", T.StringType(), True),
-        T.StructField("zip", T.StringType(), True)
-    ]), True),
-    T.StructField("created_at", T.TimestampType(), True),
-    T.StructField("updated_at", T.TimestampType(), True),
-    T.StructField("tags", T.ArrayType(T.StringType()), True),
-    T.StructField("properties", T.MapType(T.StringType(), T.StringType()), True)
+schema = StructType([
+    StructField("id", StringType(), True),
+    StructField("timestamp", TimestampType(), True),
+    StructField("double_value", DoubleType(), True),
+    StructField("decimal_value", DecimalType(10, 2), True),
+    StructField("array_value", ArrayType(StringType()), True),
+    StructField("map_value", MapType(StringType(), StringType()), True)
 ])
 
 # Generate happy path test data
 happy_path_data = [
-    (1, "John Doe", "john.doe@example.com", "123-456-7890", 
-     {"street": "123 Main St", "city": "Anytown", "state": "CA", "zip": "12345"}, 
-     "2024-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", 
-     ["tag1", "tag2"], {"key1": "value1", "key2": "value2"}),
-    (2, "Jane Doe", "jane.doe@example.com", "987-654-3210", 
-     {"street": "456 Elm St", "city": "Othertown", "state": "NY", "zip": "67890"}, 
-     "2024-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", 
-     ["tag3", "tag4"], {"key3": "value3", "key4": "value4"}),
-    # Add more happy path test data as needed
+    ("1", "2024-03-21T00:00:00.000+0000", 10.5, 10.50, ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
+    ("2", "2024-03-22T00:00:00.000+0000", 20.5, 20.50, ["value3", "value4"], {"key3": "value3", "key4": "value4"}),
+    ("3", "2024-03-23T00:00:00.000+0000", 30.5, 30.50, ["value5", "value6"], {"key5": "value5", "key6": "value6"}),
+    ("4", "2024-03-24T00:00:00.000+0000", 40.5, 40.50, ["value7", "value8"], {"key7": "value7", "key8": "value8"}),
+    ("5", "2024-03-25T00:00:00.000+0000", 50.5, 50.50, ["value9", "value10"], {"key9": "value9", "key10": "value10"}),
 ]
 
-# Generate edge case test data
-edge_case_data = [
-    (3, "", "", "", 
-     {"street": "", "city": "", "state": "", "zip": ""}, 
-     "2024-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", 
-     [], {}),
-    (4, None, None, None, 
-     {"street": None, "city": None, "state": None, "zip": None}, 
-     "2024-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", 
-     None, None),
-    # Add more edge case test data as needed
+# Generate edge cases test data
+edge_cases_data = [
+    ("6", "2024-03-26T00:00:00.000+0000", 0.0, 0.00, [], {}),
+    ("7", "2024-03-27T00:00:00.000+0000", 100.0, 100.00, ["value1"], {"key1": "value1"}),
+    ("8", "2024-03-28T00:00:00.000+0000", -10.5, -10.50, ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
+    ("9", "2024-03-29T00:00:00.000+0000", 10.5, 10.50, ["value1", "value2", "value3"], {"key1": "value1", "key2": "value2", "key3": "value3"}),
+    ("10", "2024-03-30T00:00:00.000+0000", 10.5, 10.50, ["value1", "value2", "value3", "value4"], {"key1": "value1", "key2": "value2", "key3": "value3", "key4": "value4"}),
 ]
 
-# Generate error case test data
-error_case_data = [
-    (5, "Invalid", "Invalid", "Invalid", 
-     {"street": "Invalid", "city": "Invalid", "state": "Invalid", "zip": "Invalid"}, 
-     "Invalid", "Invalid", 
-     ["Invalid"], {"Invalid": "Invalid"}),
-    # Add more error case test data as needed
+# Generate error cases test data
+error_cases_data = [
+    ("11", "invalid_timestamp", 10.5, 10.50, ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
+    ("12", "2024-03-31T00:00:00.000+0000", "invalid_double", 10.50, ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
+    ("13", "2024-03-31T00:00:00.000+0000", 10.5, "invalid_decimal", ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
+    ("14", "2024-03-31T00:00:00.000+0000", 10.5, 10.50, "invalid_array", {"key1": "value1", "key2": "value2"}),
+    ("15", "2024-03-31T00:00:00.000+0000", 10.5, 10.50, ["value1", "value2"], "invalid_map"),
 ]
 
-# Generate NULL handling test data
+# Generate NULL handling scenarios test data
 null_handling_data = [
-    (6, None, "john.doe@example.com", "123-456-7890", 
-     {"street": "123 Main St", "city": "Anytown", "state": "CA", "zip": "12345"}, 
-     "2024-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", 
-     ["tag1", "tag2"], {"key1": "value1", "key2": "value2"}),
-    (7, "Jane Doe", None, "987-654-3210", 
-     {"street": "456 Elm St", "city": "Othertown", "state": "NY", "zip": "67890"}, 
-     "2024-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", 
-     ["tag3", "tag4"], {"key3": "value3", "key4": "value4"}),
-    # Add more NULL handling test data as needed
+    ("16", None, 10.5, 10.50, ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
+    ("17", "2024-03-31T00:00:00.000+0000", None, 10.50, ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
+    ("18", "2024-03-31T00:00:00.000+0000", 10.5, None, ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
+    ("19", "2024-03-31T00:00:00.000+0000", 10.5, 10.50, None, {"key1": "value1", "key2": "value2"}),
+    ("20", "2024-03-31T00:00:00.000+0000", 10.5, 10.50, ["value1", "value2"], None),
 ]
 
 # Generate special characters and multi-byte characters test data
 special_chars_data = [
-    (8, "John_Doe", "john.doe@example.com", "123-456-7890", 
-     {"street": "123 Main St", "city": "Anytown", "state": "CA", "zip": "12345"}, 
-     "2024-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", 
-     ["tag1", "tag2"], {"key1": "value1", "key2": "value2"}),
-    (9, "Jane_Doe", "jane.doe@example.com", "987-654-3210", 
-     {"street": "456 Elm St", "city": "Othertown", "state": "NY", "zip": "67890"}, 
-     "2024-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", 
-     ["tag3", "tag4"], {"key3": "value3", "key4": "value4"}),
-    # Add more special characters and multi-byte characters test data as needed
+    ("21", "2024-03-31T00:00:00.000+0000", 10.5, 10.50, ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
+    ("22", "2024-03-31T00:00:00.000+0000", 10.5, 10.50, ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
+    ("23", "2024-03-31T00:00:00.000+0000", 10.5, 10.50, ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
+    ("24", "2024-03-31T00:00:00.000+0000", 10.5, 10.50, ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
+    ("25", "2024-03-31T00:00:00.000+0000", 10.5, 10.50, ["value1", "value2"], {"key1": "value1", "key2": "value2"}),
 ]
 
-# Combine all test data
-test_data = happy_path_data + edge_case_data + error_case_data + null_handling_data + special_chars_data
+# Create DataFrames for each test data category
+happy_path_df = spark.createDataFrame(happy_path_data, schema)
+edge_cases_df = spark.createDataFrame(edge_cases_data, schema)
+error_cases_df = spark.createDataFrame(error_cases_data, schema)
+null_handling_df = spark.createDataFrame(null_handling_data, schema)
+special_chars_df = spark.createDataFrame(special_chars_data, schema)
 
-# Create DataFrame from test data
-df = spark.createDataFrame(test_data, schema)
+# Write DataFrames to Databricks tables
+happy_path_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.happy_path_test_data")
+edge_cases_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.edge_cases_test_data")
+error_cases_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.error_cases_test_data")
+null_handling_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.null_handling_test_data")
+special_chars_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.special_chars_test_data")
 
-# Write DataFrame to Databricks table
-df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.test_data")
 
 
-Note: This code generates test data for a hypothetical table `test_data` in the `purgo_playground` schema. You will need to modify the schema and table name to match your actual use case. Additionally, you may need to add more test data to cover all the scenarios and edge cases.
+-- Create tables for each test data category
+CREATE TABLE purgo_playground.happy_path_test_data (
+  id STRING,
+  timestamp TIMESTAMP,
+  double_value DOUBLE,
+  decimal_value DECIMAL(10, 2),
+  array_value ARRAY<STRING>,
+  map_value MAP<STRING, STRING>
+);
+
+CREATE TABLE purgo_playground.edge_cases_test_data (
+  id STRING,
+  timestamp TIMESTAMP,
+  double_value DOUBLE,
+  decimal_value DECIMAL(10, 2),
+  array_value ARRAY<STRING>,
+  map_value MAP<STRING, STRING>
+);
+
+CREATE TABLE purgo_playground.error_cases_test_data (
+  id STRING,
+  timestamp TIMESTAMP,
+  double_value DOUBLE,
+  decimal_value DECIMAL(10, 2),
+  array_value ARRAY<STRING>,
+  map_value MAP<STRING, STRING>
+);
+
+CREATE TABLE purgo_playground.null_handling_test_data (
+  id STRING,
+  timestamp TIMESTAMP,
+  double_value DOUBLE,
+  decimal_value DECIMAL(10, 2),
+  array_value ARRAY<STRING>,
+  map_value MAP<STRING, STRING>
+);
+
+CREATE TABLE purgo_playground.special_chars_test_data (
+  id STRING,
+  timestamp TIMESTAMP,
+  double_value DOUBLE,
+  decimal_value DECIMAL(10, 2),
+  array_value ARRAY<STRING>,
+  map_value MAP<STRING, STRING>
+);
+
+-- Insert data into tables
+INSERT INTO purgo_playground.happy_path_test_data
+VALUES
+  ('1', '2024-03-21T00:00:00.000+0000', 10.5, 10.50, ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'}),
+  ('2', '2024-03-22T00:00:00.000+0000', 20.5, 20.50, ['value3', 'value4'], {'key3': 'value3', 'key4': 'value4'}),
+  ('3', '2024-03-23T00:00:00.000+0000', 30.5, 30.50, ['value5', 'value6'], {'key5': 'value5', 'key6': 'value6'}),
+  ('4', '2024-03-24T00:00:00.000+0000', 40.5, 40.50, ['value7', 'value8'], {'key7': 'value7', 'key8': 'value8'}),
+  ('5', '2024-03-25T00:00:00.000+0000', 50.5, 50.50, ['value9', 'value10'], {'key9': 'value9', 'key10': 'value10'});
+
+INSERT INTO purgo_playground.edge_cases_test_data
+VALUES
+  ('6', '2024-03-26T00:00:00.000+0000', 0.0, 0.00, [], {}),
+  ('7', '2024-03-27T00:00:00.000+0000', 100.0, 100.00, ['value1'], {'key1': 'value1'}),
+  ('8', '2024-03-28T00:00:00.000+0000', -10.5, -10.50, ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'}),
+  ('9', '2024-03-29T00:00:00.000+0000', 10.5, 10.50, ['value1', 'value2', 'value3'], {'key1': 'value1', 'key2': 'value2', 'key3': 'value3'}),
+  ('10', '2024-03-30T00:00:00.000+0000', 10.5, 10.50, ['value1', 'value2', 'value3', 'value4'], {'key1': 'value1', 'key2': 'value2', 'key3': 'value3', 'key4': 'value4'});
+
+INSERT INTO purgo_playground.error_cases_test_data
+VALUES
+  ('11', 'invalid_timestamp', 10.5, 10.50, ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'}),
+  ('12', '2024-03-31T00:00:00.000+0000', 'invalid_double', 10.50, ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'}),
+  ('13', '2024-03-31T00:00:00.000+0000', 10.5, 'invalid_decimal', ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'}),
+  ('14', '2024-03-31T00:00:00.000+0000', 10.5, 10.50, 'invalid_array', {'key1': 'value1', 'key2': 'value2'}),
+  ('15', '2024-03-31T00:00:00.000+0000', 10.5, 10.50, ['value1', 'value2'], 'invalid_map');
+
+INSERT INTO purgo_playground.null_handling_test_data
+VALUES
+  ('16', NULL, 10.5, 10.50, ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'}),
+  ('17', '2024-03-31T00:00:00.000+0000', NULL, 10.50, ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'}),
+  ('18', '2024-03-31T00:00:00.000+0000', 10.5, NULL, ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'}),
+  ('19', '2024-03-31T00:00:00.000+0000', 10.5, 10.50, NULL, {'key1': 'value1', 'key2': 'value2'}),
+  ('20', '2024-03-31T00:00:00.000+0000', 10.5, 10.50, ['value1', 'value2'], NULL);
+
+INSERT INTO purgo_playground.special_chars_test_data
+VALUES
+  ('21', '2024-03-31T00:00:00.000+0000', 10.5, 10.50, ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'}),
+  ('22', '2024-03-31T00:00:00.000+0000', 10.5, 10.50, ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'}),
+  ('23', '2024-03-31T00:00:00.000+0000', 10.5, 10.50, ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'}),
+  ('24', '2024-03-31T00:00:00.000+0000', 10.5, 10.50, ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'}),
+  ('25', '2024-03-31T00:00:00.000+0000', 10.5, 10.50, ['value1', 'value2'], {'key1': 'value1', 'key2': 'value2'});
