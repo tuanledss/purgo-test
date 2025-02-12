@@ -30,19 +30,24 @@ Feature: Encrypt PII Data in Customer 360 Table
     And the process is halted
 
   Scenario: Handle encryption failure
-    Given the encryption process is running
-    When an error occurs during encryption of the column "email"
-    Then an error message "Encryption failed for column: email" is logged
-    And the process is rolled back to maintain data integrity
+    Given the PII columns "name", "email", "phone", and "zip" in the table "purgo_playground.customer_360_raw_clone"
+    When the encryption method "AES-256" fails to encrypt the data
+    Then an error message "Encryption process failed for column <column_name>" is logged
+    And the process is halted
 
   Scenario: Performance benchmark for encryption
-    Given the table "purgo_playground.customer_360_raw_clone" with PII data
+    Given the table "purgo_playground.customer_360_raw_clone" with PII columns
     When the encryption process is executed
-    Then the process completes within "5 minutes"
-    And the system resources are not exhausted
+    Then the process completes within the performance benchmark of 5 minutes
 
-  Scenario: Key management and access control
-    Given the encryption key is generated
-    When the key is stored
-    Then access is restricted to authorized personnel only
-    And key rotation policy is defined as "every 90 days"
+  Scenario: Validate JSON file creation
+    Given the encryption process is completed
+    When the JSON file "encryption_key_<current_datetime>.json" is created
+    Then the file exists in the location "/Volumes/agilisium_playground/purgo_playground/de_dq"
+    And the file contains a valid encryption key
+
+  Scenario: Validate access control for encryption key
+    Given the JSON file "encryption_key_<current_datetime>.json" is created
+    When access is requested by unauthorized users
+    Then access is denied
+    And an error message "Unauthorized access attempt" is logged
