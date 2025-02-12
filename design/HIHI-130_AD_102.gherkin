@@ -13,25 +13,21 @@ Feature: Encrypt PII Data in Customer 360 Table
 
   Scenario: Validate encrypted data
     Given the PII columns "name", "email", "phone", and "zip" are encrypted
-    When the data is queried from the table "purgo_playground.customer_360_raw_clone"
-    Then the data should not be in plain text
+    When the data is validated for encryption
+    Then the data should not be readable in its original form
     And the data should be decryptable using the saved encryption key
 
-  Scenario: Handle missing encryption method
-    Given the encryption method is not specified
-    When attempting to encrypt the PII columns
-    Then an error message "Encryption method not specified" is returned
+  Scenario: Error handling during encryption
+    Given the encryption process is initiated
+    When an error occurs during encryption
+    Then the process should log the error with a message "Encryption failed for column <column_name>"
+    And the process should rollback any partial changes
 
-  Scenario: Handle missing encryption key
-    Given the encryption key is not generated
-    When attempting to save the encryption key
-    Then an error message "Encryption key generation failed" is returned
-
-  Scenario Outline: Encrypt PII columns with different data sets
-    Given the PII columns "<column_name>" in the table "purgo_playground.customer_360_raw_clone"
-    When the encryption method "AES-256" is applied to the column "<column_name>"
+  Scenario Outline: Data-driven encryption validation
+    Given the PII column "<column_name>" in the table "purgo_playground.customer_360_raw_clone"
+    When the encryption method "AES-256" is applied
     Then the data in the column "<column_name>" is encrypted
-    And the encryption key is saved as a JSON file named "encryption_key_<current_datetime>.json" in the location "/Volumes/agilisium_playground/purgo_playground/de_dq"
+    And the encrypted data is validated for correctness
 
     Examples:
       | column_name |
@@ -41,13 +37,7 @@ Feature: Encrypt PII Data in Customer 360 Table
       | zip         |
 
   Scenario: Performance benchmark for encryption process
-    Given the table "purgo_playground.customer_360_raw_clone" with PII columns
-    When the encryption process is executed
-    Then the process should complete within "5 minutes"
-    And the system resources should not exceed "80% CPU usage"
-
-  Scenario: Error handling during encryption
-    Given the table "purgo_playground.customer_360_raw_clone" with PII columns
-    When an error occurs during encryption
-    Then the process should log the error with message "Encryption failed due to <error_reason>"
-    And the process should rollback any partial changes
+    Given the encryption process is initiated
+    When the process is completed
+    Then the total time taken should be less than "5 minutes"
+    And the process should handle up to "1 million" records efficiently
