@@ -11,23 +11,10 @@ Feature: Encrypt PII Data in Customer 360 Table
     Then the data in these columns is encrypted
     And the encryption key is saved as a JSON file named "encryption_key_<current_datetime>.json" in the location "/Volumes/agilisium_playground/purgo_playground/de_dq"
 
-  Scenario: Validate encrypted data
-    Given the PII columns "name", "email", "phone", and "zip" are encrypted
-    When the data is validated for encryption
-    Then the data should not be readable in its original form
-    And the data should be decryptable using the saved encryption key
-
-  Scenario: Error handling during encryption
-    Given the encryption process is initiated
-    When an error occurs during encryption
-    Then the process should log the error with a message "Encryption failed for column <column_name>"
-    And the process should rollback any partial changes
-
-  Scenario Outline: Data-driven encryption validation
-    Given the PII column "<column_name>" in the table "purgo_playground.customer_360_raw_clone"
-    When the encryption method "AES-256" is applied
-    Then the data in the column "<column_name>" is encrypted
-    And the encrypted data is validated for correctness
+  Scenario Outline: Validate encryption process
+    Given the encrypted column "<column_name>" in the table "purgo_playground.customer_360_raw_clone"
+    When the data is decrypted using the saved encryption key
+    Then the decrypted data matches the original data in the column "<column_name>" of the table "purgo_playground.customer_360_raw"
 
     Examples:
       | column_name |
@@ -36,8 +23,26 @@ Feature: Encrypt PII Data in Customer 360 Table
       | phone       |
       | zip         |
 
-  Scenario: Performance benchmark for encryption process
+  Scenario: Handle missing encryption key
     Given the encryption process is initiated
-    When the process is completed
-    Then the total time taken should be less than "5 minutes"
-    And the process should handle up to "1 million" records efficiently
+    When the encryption key cannot be generated
+    Then an error message "Encryption key generation failed" is logged
+    And the process is halted
+
+  Scenario: Handle encryption failure
+    Given the encryption process is running
+    When an error occurs during encryption of the column "email"
+    Then an error message "Encryption failed for column: email" is logged
+    And the process is rolled back to maintain data integrity
+
+  Scenario: Performance benchmark for encryption
+    Given the table "purgo_playground.customer_360_raw_clone" with PII data
+    When the encryption process is executed
+    Then the process completes within "5 minutes"
+    And the system resources are not exhausted
+
+  Scenario: Key management and access control
+    Given the encryption key is generated
+    When the key is stored
+    Then access is restricted to authorized personnel only
+    And key rotation policy is defined as "every 90 days"
