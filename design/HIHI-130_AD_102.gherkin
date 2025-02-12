@@ -7,8 +7,9 @@ Feature: Encrypt PII Data in Customer 360 Table
 
   Scenario: Encrypt PII columns in the customer_360_raw_clone table
     Given the PII columns "name", "email", "phone", and "zip" in the table "purgo_playground.customer_360_raw_clone"
-    When the encryption method "AES-256" is applied to these columns
-    Then the data in these columns is encrypted
+    When the encryption algorithm "AES-256" is applied to the PII columns
+    Then the PII columns are encrypted successfully
+    And the encrypted data is stored in the table "purgo_playground.customer_360_raw_clone"
     And the encryption key is saved as a JSON file named "encryption_key_<current_datetime>.json" in the location "/Volumes/agilisium_playground/purgo_playground/de_dq"
 
   Scenario Outline: Validate encryption process
@@ -29,25 +30,18 @@ Feature: Encrypt PII Data in Customer 360 Table
     Then an error message "Encryption key generation failed" is logged
     And the process is halted
 
-  Scenario: Handle encryption failure
-    Given the PII columns "name", "email", "phone", and "zip" in the table "purgo_playground.customer_360_raw_clone"
-    When the encryption method "AES-256" fails to encrypt the data
-    Then an error message "Encryption process failed for column <column_name>" is logged
-    And the process is halted
+  Scenario: Handle invalid data format
+    Given the PII column "email" contains invalid data format
+    When the encryption process is attempted
+    Then an error message "Invalid data format in column email" is logged
+    And the process skips the invalid record
 
-  Scenario: Performance benchmark for encryption
-    Given the table "purgo_playground.customer_360_raw_clone" with PII columns
-    When the encryption process is executed
-    Then the process completes within the performance benchmark of 5 minutes
-
-  Scenario: Validate JSON file creation
+  Scenario: Ensure compliance with data protection standards
     Given the encryption process is completed
-    When the JSON file "encryption_key_<current_datetime>.json" is created
-    Then the file exists in the location "/Volumes/agilisium_playground/purgo_playground/de_dq"
-    And the file contains a valid encryption key
+    When the data is reviewed for compliance
+    Then the process adheres to GDPR and CCPA standards
 
-  Scenario: Validate access control for encryption key
-    Given the JSON file "encryption_key_<current_datetime>.json" is created
-    When access is requested by unauthorized users
-    Then access is denied
-    And an error message "Unauthorized access attempt" is logged
+  Scenario: Performance benchmark validation
+    Given the encryption process is initiated
+    When the process is completed
+    Then the total execution time is less than 5 minutes for 1 million records
