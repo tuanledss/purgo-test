@@ -50,7 +50,11 @@ df_encrypted = df_clone.withColumn("name", encrypt_udf(col("name"))) \
                        .withColumn("zip", encrypt_udf(col("zip")))
 
 # Save the encrypted data back to the clone table
-df_encrypted.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("purgo_playground.customer_360_raw_clone")
+df_encrypted.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.customer_360_raw_clone")
 
-# Cleanup: Drop the clone table after the process
+# Optimize the clone table and perform vacuuming
+spark.sql("OPTIMIZE purgo_playground.customer_360_raw_clone ZORDER BY (id)")
+spark.sql("VACUUM purgo_playground.customer_360_raw_clone RETAIN 0 HOURS")
+
+# Cleanup: Drop the clone table after tests
 spark.sql("DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone")
