@@ -11,10 +11,27 @@ Feature: Encrypt PII Data in Customer 360 Table
     Then the data in these columns is encrypted
     And the encryption key is saved as a JSON file named "encryption_key_<current_datetime>.json" in the location "/Volumes/agilisium_playground/purgo_playground/de_dq"
 
-  Scenario Outline: Validate encryption process
-    Given the encrypted column "<column_name>" in the table "purgo_playground.customer_360_raw_clone"
-    When the data is decrypted using the saved encryption key
-    Then the decrypted data matches the original data in the column "<column_name>" of the table "purgo_playground.customer_360_raw"
+  Scenario: Validate encrypted data
+    Given the PII columns "name", "email", "phone", and "zip" are encrypted
+    When the data is queried from the table "purgo_playground.customer_360_raw_clone"
+    Then the data should not be in plain text
+    And the data should be decryptable using the saved encryption key
+
+  Scenario: Handle missing encryption method
+    Given the encryption method is not specified
+    When attempting to encrypt the PII columns
+    Then an error message "Encryption method not specified" is returned
+
+  Scenario: Handle missing encryption key
+    Given the encryption key is not generated
+    When attempting to save the encryption key
+    Then an error message "Encryption key generation failed" is returned
+
+  Scenario Outline: Encrypt PII columns with different data sets
+    Given the PII columns "<column_name>" in the table "purgo_playground.customer_360_raw_clone"
+    When the encryption method "AES-256" is applied to the column "<column_name>"
+    Then the data in the column "<column_name>" is encrypted
+    And the encryption key is saved as a JSON file named "encryption_key_<current_datetime>.json" in the location "/Volumes/agilisium_playground/purgo_playground/de_dq"
 
     Examples:
       | column_name |
@@ -23,25 +40,14 @@ Feature: Encrypt PII Data in Customer 360 Table
       | phone       |
       | zip         |
 
-  Scenario: Handle missing encryption key
-    Given the encryption process is initiated
-    When the encryption key cannot be generated
-    Then an error message "Encryption key generation failed" is logged
-    And the process is halted
-
-  Scenario: Handle encryption failure
-    Given the encryption process is initiated for the column "name"
-    When the encryption fails due to an invalid data format
-    Then an error message "Encryption failed for column: name" is logged
-    And the process continues for other columns
-
-  Scenario: Performance benchmark for encryption
-    Given the table "purgo_playground.customer_360_raw_clone" with 1 million records
+  Scenario: Performance benchmark for encryption process
+    Given the table "purgo_playground.customer_360_raw_clone" with PII columns
     When the encryption process is executed
-    Then the process completes within 5 minutes
+    Then the process should complete within "5 minutes"
+    And the system resources should not exceed "80% CPU usage"
 
-  Scenario: Key management and access control
-    Given the encryption key is generated
-    When the key is saved
-    Then access to the key is restricted to authorized personnel only
-    And the key is rotated every 90 days
+  Scenario: Error handling during encryption
+    Given the table "purgo_playground.customer_360_raw_clone" with PII columns
+    When an error occurs during encryption
+    Then the process should log the error with message "Encryption failed due to <error_reason>"
+    And the process should rollback any partial changes
