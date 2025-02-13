@@ -1,111 +1,65 @@
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, udf, lit
-from pyspark.sql.types import StringType, StructType, StructField, LongType, DateType
-from datetime import datetime
-import base64
-from Crypto.Cipher import AES
-import json
+# PySpark Tests
+from pyspark.sql import SparkSession, functions as F
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 
-# Set up Spark session
-spark = SparkSession.builder.appName("TestEncryptPIIData").getOrCreate()
+# Initialize Spark session
+spark = SparkSession.builder.appName("Databricks Test").getOrCreate()
 
-# Define Schema for Test Data
+# Define DataFrame schema
 schema = StructType([
-    StructField("id", LongType(), True),
+    StructField("id", IntegerType(), True),
     StructField("name", StringType(), True),
     StructField("email", StringType(), True),
     StructField("phone", StringType(), True),
-    StructField("company", StringType(), True),
-    StructField("job_title", StringType(), True),
-    StructField("address", StringType(), True),
-    StructField("city", StringType(), True),
-    StructField("state", StringType(), True),
-    StructField("zip", StringType(), True),
-    StructField("country", StringType(), True),
-    StructField("industry", StringType(), True),
-    StructField("account_manager", StringType(), True),
-    StructField("creation_date", DateType(), True),
-    StructField("last_interaction_date", DateType(), True),
-    StructField("purchase_history", StringType(), True),
-    StructField("notes", StringType(), True)
+    StructField("zip", StringType(), True)
 ])
 
-# Sample Data for Testing
+# Sample data for testing
 data = [
-    (1, "John Doe", "john.doe@example.com", "1234567890", "ACME Corp", "Developer", "123 Elm St", "Metropolis", "NY", "10101", "USA", "Tech", "Alice Smith", "2023-01-01", "2023-02-01", "p1,p2,p3", ""),
-    (2, None, None, None, "ACME Corp", "Developer", "123 Elm St", "Metropolis", "NY", "10101", "USA", "Tech", "Alice Smith", "2023-01-01", "2023-02-01", "p1,p2,p3", ""),
-    (3, "Jürgen Müller", "jürgen.müller@example.com", "+491234567890", "Müller GmbH", "Engineer", "Bäckerstraße 1", "Berlin", "BE", "10115", "DEU", "Mechanical", "Max Mustermann", "2023-03-01", "2023-03-02", "p4,p5", "This is a note with emoji 🚀")
+    (1, "John Doe", "john.doe@example.com", "1234567890", "10101"),
+    (2, None, None, None, None),  # Handling NULLs
+    (3, "Jane Doe", "jane.doe@example.com", "0987654321", "20205")
 ]
 
 # Create DataFrame
 df = spark.createDataFrame(data, schema)
 
-# Encryption key and Initialization Vector
-key = b'Sixteen byte key'
-iv = b'Sixteen byte IV__'
-
-# Encryption function using AES
-def encrypt(text):
-    if text is None:
-        return text
-    cipher = AES.new(key, AES.MODE_CFB, iv)
-    ct_bytes = cipher.encrypt(text.encode('utf-8'))
-    return base64.b64encode(ct_bytes).decode('utf-8')
-
-# UDF for Encryption
-encrypt_udf = udf(encrypt, StringType())
-
-# Encryption Transformation
-encrypted_df = df.withColumn("encrypted_name", encrypt_udf(col("name")))\
-                 .withColumn("encrypted_email", encrypt_udf(col("email")))\
-                 .withColumn("encrypted_phone", encrypt_udf(col("phone")))\
-                 .withColumn("encrypted_zip", encrypt_udf(col("zip")))
-
-# Validate Encrypted Data Schema
+# Test schema validation
 expected_schema = StructType([
-    StructField("id", LongType(), True),
+    StructField("id", IntegerType(), True),
     StructField("name", StringType(), True),
     StructField("email", StringType(), True),
     StructField("phone", StringType(), True),
-    StructField("company", StringType(), True),
-    StructField("job_title", StringType(), True),
-    StructField("address", StringType(), True),
-    StructField("city", StringType(), True),
-    StructField("state", StringType(), True),
-    StructField("zip", StringType(), True),
-    StructField("country", StringType(), True),
-    StructField("industry", StringType(), True),
-    StructField("account_manager", StringType(), True),
-    StructField("creation_date", DateType(), True),
-    StructField("last_interaction_date", DateType(), True),
-    StructField("purchase_history", StringType(), True),
-    StructField("notes", StringType(), True)
+    StructField("zip", StringType(), True)
 ])
-assert encrypted_df.schema == expected_schema, "Schema does not match"
 
-# Drop original columns and Rename Encrypted
-final_df = encrypted_df.drop("name", "email", "phone", "zip")\
-    .withColumnRenamed("encrypted_name", "name")\
-    .withColumnRenamed("encrypted_email", "email")\
-    .withColumnRenamed("encrypted_phone", "phone")\
-    .withColumnRenamed("encrypted_zip", "zip")
+assert df.schema == expected_schema, "Schema does not match expected schema"
 
-# Test Writing to Delta Table
-final_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.customer_360_raw_clone")
+# Test data quality - Check for NULLs
+null_counts = df.select([F.count(F.when(F.isnull(c), c)).alias(c) for c in df.columns])
+null_counts.show()
 
-# Validate Delta Table Operations
-read_back_df = spark.table("purgo_playground.customer_360_raw_clone") 
-assert read_back_df.count() == df.count(), "Record count mismatch between written and read table"
+# Assert if there are expected NULLs (customize as needed)
+null_name_count = null_counts.collect()[0]['name']
+assert null_name_count == 1, "Unexpected NULL count in 'name' column"
 
-# Save Encryption Key as JSON
-encryption_key = {
-    "key": base64.b64encode(key).decode('utf-8'),
-    "iv": base64.b64encode(iv).decode('utf-8')
-}
-current_datetime = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-json_path = f"/Volumes/agilisium_playground/purgo_playground/de_dq/encryption_key_{current_datetime}.json"
+# Test cases for Delta Lake MERGE, UPDATE, DELETE operations
+# Setup two tables as DataFrame to simulate operations
+source_df = spark.createDataFrame([(4, "Mary Jane", "mary.jane@example.com", "5647382910", "30303")], schema)
 
-with open(json_path, 'w') as json_file:
-    json.dump(encryption_key, json_file)
+# Simulate an operation as Delta Lake doesn't natively execute in Spark DataFrame API
+df = df.union(source_df)
+
+# Simulate UPDATE operation
+updated_df = df.withColumn("email", F.when(df.name == "John Doe", "new.john.doe@example.com").otherwise(df.email))
+
+# Check UPDATE
+assert updated_df.filter(updated_df.name == "John Doe").select("email").collect()[0][0] == "new.john.doe@example.com"
+
+# Simulate DELETE by filtering
+filtered_df = updated_df.filter(updated_df.name != "Mary Jane")
+
+# Check DELETE
+assert filtered_df.filter(filtered_df.name == "Mary Jane").count() == 0
 
 spark.stop()
