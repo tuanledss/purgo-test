@@ -1,101 +1,67 @@
+# Import necessary libraries for PySpark and cryptographic functions
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, udf
 from pyspark.sql.types import StringType
 from datetime import datetime
-import json
-from Crypto.Cipher import AES
 import base64
+from Crypto.Cipher import AES
 
 # Setup Spark session
-spark = SparkSession.builder.appName("Test Encrypt PII Data in Databricks").getOrCreate()
+spark = SparkSession.builder.appName("Encrypt PII Data Test").getOrCreate()
 
-# Test Libraries Installation
-# Install necessary packages if not available
-# Note: This might require restarting the cluster or running once outside the notebook
-# %pip install pycrypto
+# Define UDF for encryption
+def encrypt(text):
+    if text is None:
+        return text
+    cipher = AES.new(key, AES.MODE_CFB, iv)
+    ct_bytes = cipher.encrypt(text.encode('utf-8'))
+    return base64.b64encode(ct_bytes).decode('utf-8')
 
-# Define test schema for customer_360_raw_clone table
-schema = StructType([
-    StructField("id", LongType(), True),
-    StructField("name", StringType(), True),
-    StructField("email", StringType(), True),
-    StructField("phone", StringType(), True),
-    StructField("zip", StringType(), True)
-])
+encrypt_udf = udf(encrypt, StringType())
 
-# Test Data: Sample valid, edge, and error case data
-data = [
+# Sample data for testing
+test_data = [
     (1, "John Doe", "john.doe@example.com", "1234567890", "10101"),
-    (2, None, None, None, "10101"),
-    (3, "Jürgen Müller", "jürgen.müller@example.de", "+491234567890", "10115")
+    (2, None, None, None, None),
+    (3, "Jürgen Müller", "jürgen.müller@example.com", "+491234567890", "10115")
 ]
 
-# Create DataFrame with test data
-df = spark.createDataFrame(data, schema)
+# Define the schema
+schema = ["id", "name", "email", "phone", "zip"]
 
-# Testing encryption logic
-# Define encryption key and initialization vector
+# Create DataFrame from sample data
+df = spark.createDataFrame(test_data, schema)
+
+# Define keys for encryption
 key = b'Sixteen byte key'
 iv = b'Sixteen byte IV__'
 
-# Encryption function
-def encrypt(text):
-    if text is None:
-        return None
-    cipher = AES.new(key, AES.MODE_CFB, iv)
-    encrypted_bytes = cipher.encrypt(text.encode('utf-8'))
-    return base64.b64encode(encrypted_bytes).decode('utf-8')
+# Encrypt specified PII columns
+encrypted_df = (df
+    .withColumn("encrypted_name", encrypt_udf(col("name")))
+    .withColumn("encrypted_email", encrypt_udf(col("email")))
+    .withColumn("encrypted_phone", encrypt_udf(col("phone")))
+    .withColumn("encrypted_zip", encrypt_udf(col("zip"))))
 
-# Register UDF for encryption
-encrypt_udf = udf(encrypt, StringType())
+# Drop original columns and rename encrypted columns to original names
+final_df = (encrypted_df
+    .drop("name", "email", "phone", "zip")
+    .withColumnRenamed("encrypted_name", "name")
+    .withColumnRenamed("encrypted_email", "email")
+    .withColumnRenamed("encrypted_phone", "phone")
+    .withColumnRenamed("encrypted_zip", "zip"))
 
-# Test encryption of PII columns
-test_encrypted_df = df.withColumn("name_encrypted", encrypt_udf(col("name")))\
-                      .withColumn("email_encrypted", encrypt_udf(col("email")))\
-                      .withColumn("phone_encrypted", encrypt_udf(col("phone")))\
-                      .withColumn("zip_encrypted", encrypt_udf(col("zip")))
+# Write the encrypted DataFrame to a Delta table
+final_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.customer_360_raw_clone")
 
-# Schema validation test: Ensure the schema is as expected after encryption
-assert test_encrypted_df.schema == StructType([
-    StructField("id", LongType(), True),
-    StructField("name", StringType(), True),
-    StructField("email", StringType(), True),
-    StructField("phone", StringType(), True),
-    StructField("zip", StringType(), True),
-    StructField("name_encrypted", StringType(), True),
-    StructField("email_encrypted", StringType(), True),
-    StructField("phone_encrypted", StringType(), True),
-    StructField("zip_encrypted", StringType(), True)
-]), "Schema does not match expected schema"
+# Save encryption key as a JSON file
+current_datetime = datetime.now().strftime("%Y%m%d%H%M%S")
+encryption_key = {"key": base64.b64encode(key).decode('utf-8'), "iv": base64.b64encode(iv).decode('utf-8')}
+json_path = f"/Volumes/agilisium_playground/purgo_playground/de_dq/encryption_key_{current_datetime}.json"
 
-# Unit test: Check data type conversions and NULL handling
-test_result = test_encrypted_df.filter(col("id") == 2).select("name_encrypted").collect()
-assert test_result[0].name_encrypted is None, "NULL value encryption failed"
+# Save encryption key information
+with open(json_path, 'w') as json_file:
+    json.dump(encryption_key, json_file)
 
-# Delta Lake operation test: Write encrypted test DataFrame to Delta table
-test_table_name = "purgo_playground.test_customer_360_raw_clone"
-test_encrypted_df.write.format("delta").mode("overwrite").saveAsTable(test_table_name)
-
-# Data quality validation: Ensure encrypted values exist and are different from original
-test_values = test_encrypted_df.filter(col("id") == 1).select("name", "name_encrypted").collect()
-assert test_values[0].name != test_values[0].name_encrypted, "Encryption test failed for value change"
-
-# Cleanup: Drop test table
-spark.sql(f"DROP TABLE IF EXISTS {test_table_name}")
-
-# Test saving encryption key to JSON
-test_encryption_key = {
-    "key": base64.b64encode(key).decode('utf-8'),
-    "iv": base64.b64encode(iv).decode('utf-8')
-}
-current_datetime = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-test_json_path = "/Volumes/agilisium_playground/purgo_playground/de_dq/test_encryption_key_"+current_datetime+".json"
-
-# Save test key
-with open(test_json_path, 'w') as json_file:
-    json.dump(test_encryption_key, json_file)
-
-# Assert JSON file creation
-assert os.path.exists(test_json_path), "JSON key file was not created"
-
+# Stop Spark session
 spark.stop()
