@@ -1,118 +1,127 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, lit, udf, expr
-from pyspark.sql.types import StringType, StructType, StructField, LongType, DateType, NullType
+from pyspark.sql.functions import col, udf
+from pyspark.sql.types import StringType, StructType, StructField, LongType, DateType
 from datetime import datetime
 import json
 from Crypto.Cipher import AES
 import base64
 
 # Set up Spark session
-spark = SparkSession.builder.appName("Encrypt PII Data Test Code").getOrCreate()
+spark = SparkSession.builder.appName("TestEncryptPIIData").getOrCreate()
 
-# Define schema for testing the customer_360_raw_clone
-schema_test = StructType([
+# Define the schema for customer_360_raw_clone table
+schema = StructType([
     StructField("id", LongType(), True),
     StructField("name", StringType(), True),
     StructField("email", StringType(), True),
     StructField("phone", StringType(), True),
-    StructField("zip", StringType(), True)
+    StructField("company", StringType(), True),
+    StructField("job_title", StringType(), True),
+    StructField("address", StringType(), True),
+    StructField("city", StringType(), True),
+    StructField("state", StringType(), True),
+    StructField("zip", StringType(), True),
+    StructField("country", StringType(), True),
+    StructField("industry", StringType(), True),
+    StructField("account_manager", StringType(), True),
+    StructField("creation_date", DateType(), True),
+    StructField("last_interaction_date", DateType(), True),
+    StructField("purchase_history", StringType(), True),
+    StructField("notes", StringType(), True)
 ])
 
-# Sample data for unit tests
-data_test = [
-    (1, "John Doe", "john.doe@example.com", "1234567890", "10101"),
-    (2, None, None, None, None),
-    (3, "Jürgen Müller", "jürgen.müller@example.com", "+49 1234 567890", "10115")
+# Sample valid, edge, and error case data
+data = [
+    (1, "John Doe", "john.doe@example.com", "1234567890", "ACME Corp", "Developer", "123 Elm St", "Metropolis", "NY", "10101", "USA", "Tech", "Alice Smith", "2023-01-01", "2023-02-01", "p1,p2,p3", ""),
+    (2, None, None, None, "ACME Corp", "Developer", "123 Elm St", "Metropolis", "NY", "10101", "USA", "Tech", "Alice Smith", "2023-01-01", "2023-02-01", "p1,p2,p3", ""),
+    (3, "Jürgen Müller", "jürgen.müller@example.com", "+491234567890", "Müller GmbH", "Engineer", "Bäckerstraße 1", "Berlin", "BE", "10115", "DEU", "Mechanical", "Max Mustermann", "2023-03-01", "2023-03-02", "p4,p5", "This is a note with emoji 🚀")
 ]
 
-# Create test DataFrame
-df_test = spark.createDataFrame(data_test, schema=schema_test)
+# Create DataFrame
+df = spark.createDataFrame(data, schema)
 
 # Define encryption key and initialization vector
 key = b'Sixteen byte key'
 iv = b'Sixteen byte IV__'
 
-# Define encryption utility function
+# Encryption utility function using AES encryption
 def encrypt(text):
     if text is None:
-        return None
+        return text
     cipher = AES.new(key, AES.MODE_CFB, iv)
     ct_bytes = cipher.encrypt(text.encode('utf-8'))
     return base64.b64encode(ct_bytes).decode('utf-8')
 
-# Register UDF for encrypting data
+# UDF to encrypt columns
 encrypt_udf = udf(encrypt, StringType())
 
-# Sample test execution
-# Encryption test for PII columns
-encrypted_df_test = df_test.withColumn("encrypted_name", encrypt_udf(col("name")))\
-    .withColumn("encrypted_email", encrypt_udf(col("email")))\
-    .withColumn("encrypted_phone", encrypt_udf(col("phone")))\
-    .withColumn("encrypted_zip", encrypt_udf(col("zip")))
+# Encrypt the specified PII columns
+encrypted_df = df.withColumn("encrypted_name", encrypt_udf(col("name")))\
+                 .withColumn("encrypted_email", encrypt_udf(col("email")))\
+                 .withColumn("encrypted_phone", encrypt_udf(col("phone")))\
+                 .withColumn("encrypted_zip", encrypt_udf(col("zip")))
 
-# Checking column data types post encryption
-assert encrypted_df_test.schema["encrypted_name"].dataType == StringType()
-assert encrypted_df_test.schema["encrypted_email"].dataType == StringType()
-assert encrypted_df_test.schema["encrypted_phone"].dataType == StringType()
-assert encrypted_df_test.schema["encrypted_zip"].dataType == StringType()
+# Drop original columns and rename encrypted columns
+final_df = encrypted_df.drop("name", "email", "phone", "zip")\
+    .withColumnRenamed("encrypted_name", "name")\
+    .withColumnRenamed("encrypted_email", "email")\
+    .withColumnRenamed("encrypted_phone", "phone")\
+    .withColumnRenamed("encrypted_zip", "zip")
 
-# Validate NULL handling (if None remains None after encryption)
-null_encryption_test = df_test.filter(col("id") == 2).select("encrypted_name", "encrypted_email",
-                                                               "encrypted_phone", "encrypted_zip")\
-    .collect()
+# Assert schema matches expected encrypted version
+expected_schema = StructType([
+    StructField("id", LongType(), True),
+    StructField("name", StringType(), True),
+    StructField("email", StringType(), True),
+    StructField("phone", StringType(), True),
+    StructField("company", StringType(), True),
+    StructField("job_title", StringType(), True),
+    StructField("address", StringType(), True),
+    StructField("city", StringType(), True),
+    StructField("state", StringType(), True),
+    StructField("zip", StringType(), True),
+    StructField("country", StringType(), True),
+    StructField("industry", StringType(), True),
+    StructField("account_manager", StringType(), True),
+    StructField("creation_date", DateType(), True),
+    StructField("last_interaction_date", DateType(), True),
+    StructField("purchase_history", StringType(), True),
+    StructField("notes", StringType(), True)
+])
 
-for row in null_encryption_test:
-    assert row["encrypted_name"] is None
-    assert row["encrypted_email"] is None
-    assert row["encrypted_phone"] is None
-    assert row["encrypted_zip"] is None
+# Validate Schema
+assert final_df.schema == expected_schema, "Schema does not match expected schema after encryption"
 
-# Validate data integrity of non-PII columns
-assert df_test.select("id").collect() == encrypted_df_test.select("id").collect()
+# Validate Null handling
+encrypted_null_values = final_df.filter((col("name").isNull()) | (col("email").isNull()) | (col("phone").isNull()) | (col("zip").isNull())).count()
+assert encrypted_null_values == 1, "Null handling is incorrect for encrypted columns"
 
-# Save encryption key to JSON output
+# Test Delta Lake output operations
+final_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.customer_360_raw_clone")
+
+# Validate table existence
+tables = spark.sql("SHOW TABLES IN purgo_playground").collect()
+assert any("customer_360_raw_clone" in table.tableName for table in tables), "Table customer_360_raw_clone was not created"
+
+# Validate performance: Basic count check to verify data load
+row_count = spark.sql("SELECT COUNT(*) FROM purgo_playground.customer_360_raw_clone").collect()[0][0]
+assert row_count == 3, f"Expected 3 rows in customer_360_raw_clone table, but found {row_count}"
+
+# Save encryption key to JSON file
 encryption_key = {
     "key": base64.b64encode(key).decode('utf-8'),
     "iv": base64.b64encode(iv).decode('utf-8')
 }
 current_datetime = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-json_path = f"/Volumes/agilisium_playground/purgo_playground/de_dq/encryption_key_test_{current_datetime}.json"
+json_path = f"/dbfs/Volumes/agilisium_playground/purgo_playground/de_dq/encryption_key_{current_datetime}.json"
 
-# Function to simulate JSON file write for testing
-def simulate_json_write(path, data):
-    # Simulating write in comments to review file path and data
-    print(f"Writing JSON to path: {path}")
-    print(json.dumps(data, indent=4))
+# Save the key, handling potential I/O errors
+try:
+    dbutils.fs.put(json_path, json.dumps(encryption_key), overwrite=True)
+except Exception as e:
+    raise AssertionError(f"Failed to save JSON file at specified location: {e}")
 
-simulate_json_write(json_path, encryption_key)
+# Cleanup operations, dropping the table to reset state
+spark.sql("DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone")
 
-# Stream test, create streaming DataFrame simulation for tests
-streaming_data_test = [
-    (1, "Alice", "alice@example.com", "9876543210", "60606"),
-    (2, None, "none@domain.com", None, None),
-    (3, "Robert Doe-Smith", "rob.doe-smith@example.com", "+44 1234 567890", "20220")
-]
-streaming_df_test = spark.createDataFrame(streaming_data_test, schema=schema_test)
-
-# Define mock streaming dataframe
-mock_streaming_df = streaming_df_test.withColumn("encrypted_name", encrypt_udf(col("name")))\
-    .withColumn("encrypted_email", encrypt_udf(col("email")))\
-    .withColumn("encrypted_phone", encrypt_udf(col("phone")))\
-    .withColumn("encrypted_zip", encrypt_udf(col("zip")))
-
-# Simulate stream processing with assert statements
-assert mock_streaming_df.filter(col("id") == 3).select("encrypted_name").head()[0] is not None
-
-# Delta Lake operations test for NULL handling and encryption columns existence
-# This section requires mocking Delta Lake specific writing and reading confirmation
-# Write data to delta
-mock_streaming_df.write.format("delta").mode("overwrite").save("/tmp/delta/mock_customer_360")
-
-# Check if written data is correct
-delta_test_read = spark.read.format("delta").load("/tmp/delta/mock_customer_360").filter("id = 1")
-
-# Run assertions to validate the delta table
-assert delta_test_read.filter(col("id") == 1).select("encrypted_name").head()[0] is not None
-
-# End of PySpark test case simulation
 spark.stop()
