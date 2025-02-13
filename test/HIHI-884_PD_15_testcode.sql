@@ -1,38 +1,54 @@
+-- Define the catalog and schema to be used
+USE purgo_playground;
+
+-- Query to check for NULL item_nbr
 /* 
-   -- SQL Query: Validate Data Quality in d_product Table 
-   -- Ensure item_nbr and sellable_qty are NOT NULL 
-   -- Validate prod_exp_dt for correct 'yyyyMMdd' format 
+  Scenario: Verify item_nbr is not null 
+  This scenario checks for missing values in the 'item_nbr' column.
 */
 
--- Count of records where item_nbr is NULL
+-- Get count of records with NULL item_nbr
 SELECT COUNT(*) AS null_item_nbr_count
-FROM purgo_playground.d_product
+FROM d_product
 WHERE item_nbr IS NULL;
 
--- Sample 5 records where item_nbr is NULL
+-- Display 5 sample records with NULL item_nbr
 SELECT *
-FROM purgo_playground.d_product
+FROM d_product
 WHERE item_nbr IS NULL
 LIMIT 5;
 
--- Count of records where sellable_qty is NULL
+-- Query to check for NULL sellable_qty
+/* 
+  Scenario: Verify sellable_qty is not null 
+  This scenario checks for missing values in the 'sellable_qty' column.
+*/
+
+-- Get count of records with NULL sellable_qty
 SELECT COUNT(*) AS null_sellable_qty_count
-FROM purgo_playground.d_product
+FROM d_product
 WHERE sellable_qty IS NULL;
 
--- Sample 5 records where sellable_qty is NULL
+-- Display 5 sample records with NULL sellable_qty
 SELECT *
-FROM purgo_playground.d_product
+FROM d_product
 WHERE sellable_qty IS NULL
 LIMIT 5;
 
--- Count of records where prod_exp_dt is not in 'yyyyMMdd' format
-SELECT COUNT(*) AS invalid_prod_exp_dt_format_count
-FROM purgo_playground.d_product
-WHERE LENGTH(prod_exp_dt) <> 8 OR NOT prod_exp_dt RLIKE '^[0-9]{8}$';
+-- Query to check prod_exp_dt format
+/* 
+  Scenario: Validate prod_exp_dt format 
+  This scenario checks for incorrect date format in 'prod_exp_dt' column.
+  The expected format is YYYYMMDD without any delimiters.
+*/
 
--- Sample 5 records where prod_exp_dt is not in 'yyyyMMdd' format
+-- Get count of records with incorrect prod_exp_dt format
+SELECT COUNT(*) AS invalid_date_format_count
+FROM d_product
+WHERE NOT prod_exp_dt RLIKE '^[0-9]{8}$';
+
+-- Display 5 sample records with incorrect prod_exp_dt format
 SELECT *
-FROM purgo_playground.d_product
-WHERE LENGTH(prod_exp_dt) <> 8 OR NOT prod_exp_dt RLIKE '^[0-9]{8}$'
+FROM d_product
+WHERE NOT prod_exp_dt RLIKE '^[0-9]{8}$'
 LIMIT 5;
