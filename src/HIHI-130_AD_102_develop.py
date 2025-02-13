@@ -3,72 +3,61 @@ from pyspark.sql.functions import col, udf
 from pyspark.sql.types import StringType
 import json
 import datetime
-import base64
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
-import pytest
-from pyspark.sql import Row
+import base64
 
 # Initialize Spark session
-spark = SparkSession.builder.appName("TestEncryptPIIData").getOrCreate()
+spark = SparkSession.builder.appName("Encrypt PII Data").getOrCreate()
 
-# Define the encryption function for testing
-def encrypt_data_test(data, key):
+# Drop the cloned table if it exists
+spark.sql("DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone")
+
+# Create a replica of the source table
+spark.sql("""
+CREATE TABLE purgo_playground.customer_360_raw_clone 
+AS SELECT * FROM purgo_playground.customer_360_raw
+""")
+
+# Define the encryption function
+def encrypt_data(data, key):
     if data is None:
         return None
     cipher = AES.new(key, AES.MODE_EAX)
     ciphertext, tag = cipher.encrypt_and_digest(data.encode('utf-8'))
     return base64.b64encode(cipher.nonce + tag + ciphertext).decode('utf-8')
 
-# Set up test data and mock table creation
-def create_clone_table():
-    test_data = [
-        Row(id=1, name="John Doe", email="john.doe@example.com", phone="1234567890", zip="12345", company="CompA", job_title="Engineer", address="123 St", city="CityA", state="StateA", country="CountryA", industry="IndustryA", account_manager="ManagerA", creation_date="2023-01-01", last_interaction_date="2023-02-01", purchase_history="HistoryA", notes="NotesA", is_churn=0),
-        Row(id=2, name="Jane Smith", email="jane.smith@example.com", phone="0987654321", zip="54321", company="CompB", job_title="Manager", address="456 St", city="CityB", state="StateB", country="CountryB", industry="IndustryB", account_manager="ManagerB", creation_date="2023-01-02", last_interaction_date="2023-02-02", purchase_history="HistoryB", notes="NotesB", is_churn=1)
-    ]
-    df = spark.createDataFrame(test_data)
-    df.write.mode("overwrite").saveAsTable("purgo_playground.customer_360_raw_clone")
+# Generate encryption key
+encryption_key = get_random_bytes(32)
 
-# Test Schema Validation
-def test_schema_validation():
-    create_clone_table()
-    df = spark.table("purgo_playground.customer_360_raw_clone")
-    expected_schema = "id BIGINT, name STRING, email STRING, phone STRING, zip STRING, company STRING, job_title STRING, address STRING, city STRING, state STRING, country STRING, industry STRING, account_manager STRING, creation_date DATE, last_interaction_date DATE, purchase_history STRING, notes STRING, is_churn INT"
-    assert str(df.schema) == expected_schema
+# Save the encryption key as a JSON file
+key_dict = {"key": base64.b64encode(encryption_key).decode('utf-8')}
+current_datetime = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+key_file_path = f"/Volumes/agilisium_playground/purgo_playground/de_dq/encryption_key_{current_datetime}.json"
+dbutils.fs.put(key_file_path, json.dumps(key_dict))
 
-# Test Data Type and NULL Handling
-def test_data_types_and_null_handling():
-    create_clone_table()
-    df = spark.table("purgo_playground.customer_360_raw_clone")
-    assert df.select(col("name").cast(StringType())).dtypes[0][1] == "string"
-    assert df.filter(col("name").isNull()).count() == 0
+# Create a UDF for encrypting data
+encrypt_udf = udf(lambda x: encrypt_data(x, encryption_key), StringType())
 
-# Test Encryption Functionality
-def test_encryption_functionality():
-    encryption_key = get_random_bytes(32)
-    encrypt_udf_test = udf(lambda x: encrypt_data_test(x, encryption_key), StringType())
-    create_clone_table()
-    df = spark.table("purgo_playground.customer_360_raw_clone")
-    df_encrypted = df.withColumn("name", encrypt_udf_test(col("name"))) \
-                     .withColumn("email", encrypt_udf_test(col("email"))) \
-                     .withColumn("phone", encrypt_udf_test(col("phone"))) \
-                     .withColumn("zip", encrypt_udf_test(col("zip")))
-    assert df_encrypted.filter(col("name").isNull()).count() == 0
-    assert df_encrypted.filter(col("email").isNull()).count() == 0
+# Load data from the clone table and encrypt PII columns
+df = spark.table("purgo_playground.customer_360_raw_clone")
+df_encrypted = df.withColumn("name", encrypt_udf(col("name"))) \
+                 .withColumn("email", encrypt_udf(col("email"))) \
+                 .withColumn("phone", encrypt_udf(col("phone"))) \
+                 .withColumn("zip", encrypt_udf(col("zip")))
 
-# Performance Test
-def test_performance():
-    start_time = datetime.datetime.now()
-    create_clone_table()
-    end_time = datetime.datetime.now()
-    assert (end_time - start_time).seconds < 300
+# Write encrypted data back to Delta table
+df_encrypted.write \
+    .format("delta") \
+    .mode("overwrite") \
+    .saveAsTable("purgo_playground.customer_360_raw_clone")
 
-# Test Delta Lake Operations
-def test_delta_lake_operations():
-    # Assuming Delta Lake operations are performed and checked here
-    pass
+# Optimize the table and apply Z-ordering
+spark.sql("""
+OPTIMIZE purgo_playground.customer_360_raw_clone
+ZORDER BY (id)
+""")
 
-# Run all tests
-if __name__ == "__main__":
-    pytest.main([__file__])
+# Vacuum old data files after data is no longer needed
+spark.sql("VACUUM purgo_playground.customer_360_raw_clone RETAIN 168 HOURS")
 
