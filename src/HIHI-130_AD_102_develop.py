@@ -1,10 +1,11 @@
-# Import necessary libraries
 from pyspark.sql import functions as F
+from pyspark.sql.functions import col, lit, current_timestamp
 from pyspark.sql.types import StringType
 from datetime import datetime
 from Crypto.Cipher import AES
 import base64
 import json
+import os
 
 # Encryption utility function using AES
 def encrypt_pii(text):
@@ -17,35 +18,37 @@ def encrypt_pii(text):
 # UDF for column encryption
 encrypt_udf = F.udf(encrypt_pii, StringType())
 
-# Drop and recreate the clone table
+# Drop the table if exists and create a clone from customer_360_raw
 spark.sql("DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone")
 spark.sql("CREATE TABLE purgo_playground.customer_360_raw_clone AS SELECT * FROM purgo_playground.customer_360_raw")
 
-# Load customer_360_raw_clone table
-raw_clone_df = spark.table("purgo_playground.customer_360_raw_clone")
+# Read data from replica table
+df_clone = spark.table("purgo_playground.customer_360_raw_clone")
 
-# Apply encryption to PII columns
-encrypted_df = raw_clone_df.withColumn("name", encrypt_udf(F.col("name")))\
-                           .withColumn("email", encrypt_udf(F.col("email")))\
-                           .withColumn("phone", encrypt_udf(F.col("phone")))\
-                           .withColumn("zip", encrypt_udf(F.col("zip")))
+# Apply encryption to specified columns
+df_encrypted = df_clone.withColumn("name", encrypt_udf(col("name")))\
+                       .withColumn("email", encrypt_udf(col("email")))\
+                       .withColumn("phone", encrypt_udf(col("phone")))\
+                       .withColumn("zip", encrypt_udf(col("zip")))
 
-# Write encrypted data back to clone table using Delta format
-encrypted_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.customer_360_raw_clone")
+# Write back to Delta Lake
+df_encrypted.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.customer_360_raw_clone")
 
-# Saving the encryption key and IV to a JSON file
+# Generate encryption key metadata
 encryption_metadata = {
     "key": base64.b64encode(b'Sixteen byte key').decode('utf-8'),
-    "iv": base64.b64encode(b'Sixteen byte IV__').decode('utf-8')
+    "iv": base64.b64encode(b'Sixteen byte IV__').decode('utf-8'),
+    "generated_at": datetime.utcnow().isoformat()
 }
-current_time = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+# Define JSON file path and save the encryption key
+current_time = datetime.now().strftime("%Y%m%d%H%M%S")
 json_file_path = f"/dbfs/Volumes/agilisium_playground/purgo_playground/de_dq/encryption_key_{current_time}.json"
 
-# Save key to a JSON file
-dbutils.fs.put(json_file_path, json.dumps(encryption_metadata))
+# Ensure the directory exists
+os.makedirs(os.path.dirname(json_file_path), exist_ok=True)
 
-# Add table optimization steps
-spark.sql("OPTIMIZE purgo_playground.customer_360_raw_clone")
+# Write encryption key metadata to JSON file
+with open(json_file_path, 'w') as json_file:
+    json.dump(encryption_metadata, json_file)
 
-# Vacuum old files to save storage
-spark.sql("VACUUM purgo_playground.customer_360_raw_clone RETAIN 168 HOURS")
