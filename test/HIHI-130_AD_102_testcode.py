@@ -1,20 +1,15 @@
-# Import necessary libraries and setup configurations
-# Assuming AES encryption with PyCrypto for demonstration
-# Install required library
-# pip install pycryptodome
-
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, udf
+from pyspark.sql.functions import col, udf, lit
 from pyspark.sql.types import StringType, StructType, StructField, LongType, DateType
 from datetime import datetime
-from Crypto.Cipher import AES
 import base64
+from Crypto.Cipher import AES
 import json
 
-# Initialize Spark session for testing
-spark = SparkSession.builder.appName("Test PII Encryption").getOrCreate()
+# Set up Spark session
+spark = SparkSession.builder.appName("TestEncryptPIIData").getOrCreate()
 
-# Define a test schema matching customer_360_raw
+# Define Schema for Test Data
 schema = StructType([
     StructField("id", LongType(), True),
     StructField("name", StringType(), True),
@@ -35,61 +30,82 @@ schema = StructType([
     StructField("notes", StringType(), True)
 ])
 
-# Sample test data including edge and error cases
-test_data = [
-    (1, "Alice Smith", "alice@example.com", "5551234567", "Tech Corp", "Manager", "123 Main St", "Springfield", "IL", "62701", "USA", "IT", "John Doe", "2022-05-20", "2023-09-01", "item1,item2", ""),
-    (2, None, None, None, "Empty Corp", "CEO", "456 Elm St", "Bubbleton", "CA", "90210", "USA", "Finance", "Jane Doe", "2022-04-01", "2023-08-30", "item3", ""),
-    (3, "Ümit Özdağ", "üm@example.de", "+49123456789", "Müller GmbH", "Engineer", "Franzstrasse", "Berlin", "BE", "10115", "DE", "Mechanical", "Hans Zimmer", "2022-06-15", "2023-10-10", "item4,item5", "Note")
+# Sample Data for Testing
+data = [
+    (1, "John Doe", "john.doe@example.com", "1234567890", "ACME Corp", "Developer", "123 Elm St", "Metropolis", "NY", "10101", "USA", "Tech", "Alice Smith", "2023-01-01", "2023-02-01", "p1,p2,p3", ""),
+    (2, None, None, None, "ACME Corp", "Developer", "123 Elm St", "Metropolis", "NY", "10101", "USA", "Tech", "Alice Smith", "2023-01-01", "2023-02-01", "p1,p2,p3", ""),
+    (3, "Jürgen Müller", "jürgen.müller@example.com", "+491234567890", "Müller GmbH", "Engineer", "Bäckerstraße 1", "Berlin", "BE", "10115", "DEU", "Mechanical", "Max Mustermann", "2023-03-01", "2023-03-02", "p4,p5", "This is a note with emoji 🚀")
 ]
 
 # Create DataFrame
-df = spark.createDataFrame(test_data, schema)
+df = spark.createDataFrame(data, schema)
 
-# Define encryption key and initialization vector
+# Encryption key and Initialization Vector
 key = b'Sixteen byte key'
 iv = b'Sixteen byte IV__'
 
 # Encryption function using AES
-def encrypt_value(value):
-    if value is None:
-        return None
+def encrypt(text):
+    if text is None:
+        return text
     cipher = AES.new(key, AES.MODE_CFB, iv)
-    ciphertext = cipher.encrypt(value.encode('utf-8'))
-    return base64.b64encode(ciphertext).decode('utf-8')
+    ct_bytes = cipher.encrypt(text.encode('utf-8'))
+    return base64.b64encode(ct_bytes).decode('utf-8')
 
-# Register UDF
-encrypt_udf = udf(encrypt_value, StringType())
+# UDF for Encryption
+encrypt_udf = udf(encrypt, StringType())
 
-# Apply encryption to PII columns
-encrypted_df = df.withColumn("name_enc", encrypt_udf(col("name")))\
-                 .withColumn("email_enc", encrypt_udf(col("email")))\
-                 .withColumn("phone_enc", encrypt_udf(col("phone")))\
-                 .withColumn("zip_enc", encrypt_udf(col("zip")))
+# Encryption Transformation
+encrypted_df = df.withColumn("encrypted_name", encrypt_udf(col("name")))\
+                 .withColumn("encrypted_email", encrypt_udf(col("email")))\
+                 .withColumn("encrypted_phone", encrypt_udf(col("phone")))\
+                 .withColumn("encrypted_zip", encrypt_udf(col("zip")))
 
-# Drop original PII columns and rename encrypted columns
+# Validate Encrypted Data Schema
+expected_schema = StructType([
+    StructField("id", LongType(), True),
+    StructField("name", StringType(), True),
+    StructField("email", StringType(), True),
+    StructField("phone", StringType(), True),
+    StructField("company", StringType(), True),
+    StructField("job_title", StringType(), True),
+    StructField("address", StringType(), True),
+    StructField("city", StringType(), True),
+    StructField("state", StringType(), True),
+    StructField("zip", StringType(), True),
+    StructField("country", StringType(), True),
+    StructField("industry", StringType(), True),
+    StructField("account_manager", StringType(), True),
+    StructField("creation_date", DateType(), True),
+    StructField("last_interaction_date", DateType(), True),
+    StructField("purchase_history", StringType(), True),
+    StructField("notes", StringType(), True)
+])
+assert encrypted_df.schema == expected_schema, "Schema does not match"
+
+# Drop original columns and Rename Encrypted
 final_df = encrypted_df.drop("name", "email", "phone", "zip")\
-                       .withColumnRenamed("name_enc", "name")\
-                       .withColumnRenamed("email_enc", "email")\
-                       .withColumnRenamed("phone_enc", "phone")\
-                       .withColumnRenamed("zip_enc", "zip")
+    .withColumnRenamed("encrypted_name", "name")\
+    .withColumnRenamed("encrypted_email", "email")\
+    .withColumnRenamed("encrypted_phone", "phone")\
+    .withColumnRenamed("encrypted_zip", "zip")
 
-# Schema validation test
-assert final_df.schema == df.schema, "Schema mismatch after encryption"
-
-# Save encrypted data to Delta table
+# Test Writing to Delta Table
 final_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.customer_360_raw_clone")
 
-# Save encryption key to JSON file
-encryption_key_data = {
+# Validate Delta Table Operations
+read_back_df = spark.table("purgo_playground.customer_360_raw_clone") 
+assert read_back_df.count() == df.count(), "Record count mismatch between written and read table"
+
+# Save Encryption Key as JSON
+encryption_key = {
     "key": base64.b64encode(key).decode('utf-8'),
     "iv": base64.b64encode(iv).decode('utf-8')
 }
-timestamp_str = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-json_filepath = f"/Volumes/agilisium_playground/purgo_playground/de_dq/encryption_key_{timestamp_str}.json"
+current_datetime = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+json_path = f"/Volumes/agilisium_playground/purgo_playground/de_dq/encryption_key_{current_datetime}.json"
 
-# Write encryption key to the specified JSON path
-with open(json_filepath, 'w') as json_file:
-    json.dump(encryption_key_data, json_file)
+with open(json_path, 'w') as json_file:
+    json.dump(encryption_key, json_file)
 
-# Clean up Spark session
 spark.stop()
