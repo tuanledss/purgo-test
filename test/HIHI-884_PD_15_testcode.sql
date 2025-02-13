@@ -1,42 +1,38 @@
--- Use the Databricks SQL interface for the checks
--- Ensure the Unity Catalog is specified correctly
+/* 
+   -- SQL Query: Validate Data Quality in d_product Table 
+   -- Ensure item_nbr and sellable_qty are NOT NULL 
+   -- Validate prod_exp_dt for correct 'yyyyMMdd' format 
+*/
 
-/* Data Quality Check: Validate non-null and format conditions for d_product table */
-
--- Check for NULL item_nbr and display sample records
+-- Count of records where item_nbr is NULL
 SELECT COUNT(*) AS null_item_nbr_count
 FROM purgo_playground.d_product
 WHERE item_nbr IS NULL;
 
--- Retrieve and show 5 sample records with NULL item_nbr
+-- Sample 5 records where item_nbr is NULL
 SELECT *
 FROM purgo_playground.d_product
 WHERE item_nbr IS NULL
 LIMIT 5;
 
--- Check for NULL sellable_qty and display sample records
+-- Count of records where sellable_qty is NULL
 SELECT COUNT(*) AS null_sellable_qty_count
 FROM purgo_playground.d_product
 WHERE sellable_qty IS NULL;
 
--- Retrieve and show 5 sample records with NULL sellable_qty
+-- Sample 5 records where sellable_qty is NULL
 SELECT *
 FROM purgo_playground.d_product
 WHERE sellable_qty IS NULL
 LIMIT 5;
 
--- Check for incorrect prod_exp_dt format and display sample records
--- Using a regular expression to match YYYYMMDD format precisely
-SELECT COUNT(*) AS invalid_prod_exp_dt_count
+-- Count of records where prod_exp_dt is not in 'yyyyMMdd' format
+SELECT COUNT(*) AS invalid_prod_exp_dt_format_count
 FROM purgo_playground.d_product
-WHERE NOT prod_exp_dt REGEXP '^[12][0-9]{3}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$';
+WHERE LENGTH(prod_exp_dt) <> 8 OR NOT prod_exp_dt RLIKE '^[0-9]{8}$';
 
--- Retrieve and show 5 sample records with incorrect prod_exp_dt
+-- Sample 5 records where prod_exp_dt is not in 'yyyyMMdd' format
 SELECT *
 FROM purgo_playground.d_product
-WHERE NOT prod_exp_dt REGEXP '^[12][0-9]{3}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$'
+WHERE LENGTH(prod_exp_dt) <> 8 OR NOT prod_exp_dt RLIKE '^[0-9]{8}$'
 LIMIT 5;
-
-/* Cleanup Operations */
-/* If there are temporary tables or views created for testing purposes, ensure they are dropped here */
--- DROP VIEW IF EXISTS temp_view_name;
