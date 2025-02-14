@@ -1,41 +1,74 @@
--- SQL code for Data Quality Checks using Databricks SQL syntax
+-- SQL Test Script for Databricks Environment
 
--- Setup: Ensure that the environment has access to the Unity Catalog and the specified catalog and schema for d_product
--- USE CATALOG purgo_playground;
--- USE SCHEMA default;
+/* 
+   Data Quality Checks for `d_product` Table
+   In order to ensure data integrity before moving to production
+*/
 
--- Check for NULL item_nbr
--- Display the count of records where 'item_nbr' is NULL
-SELECT COUNT(*) AS null_item_nbr_count
-FROM d_product
-WHERE item_nbr IS NULL;
+/* 
+   Setup or Configuration Information
+   Uncomment and modify the following lines according to your database setup
+   -- USE CATALOG purgo_playground;
+   -- USE SCHEMA {your_schema};
+*/
 
--- Display 5 sample records where 'item_nbr' is NULL
+/* 
+   Scenario: Verify `item_nbr` is not null 
+   Retrieve the count and sample records with null `item_nbr`
+*/
+
+WITH null_item_nbr AS (
+  SELECT *
+  FROM d_product
+  WHERE item_nbr IS NULL
+)
+
+SELECT COUNT(*) AS null_item_nbr_count FROM null_item_nbr;
+
 SELECT *
-FROM d_product
-WHERE item_nbr IS NULL
+FROM null_item_nbr
 LIMIT 5;
 
--- Check for NULL sellable_qty
--- Display the count of records where 'sellable_qty' is NULL
-SELECT COUNT(*) AS null_sellable_qty_count
-FROM d_product
-WHERE sellable_qty IS NULL;
 
--- Display 5 sample records where 'sellable_qty' is NULL
+/* 
+   Scenario: Verify `sellable_qty` is not null 
+   Retrieve the count and sample records with null `sellable_qty`
+*/
+
+WITH null_sellable_qty AS (
+  SELECT *
+  FROM d_product
+  WHERE sellable_qty IS NULL
+)
+
+SELECT COUNT(*) AS null_sellable_qty_count FROM null_sellable_qty;
+
 SELECT *
-FROM d_product
-WHERE sellable_qty IS NULL
+FROM null_sellable_qty
 LIMIT 5;
 
--- Check for incorrect prod_exp_dt format (not in YYYYMMDD)
--- Display the count of records where 'prod_exp_dt' is not in the correct format
-SELECT COUNT(*) AS invalid_prod_exp_dt_count
-FROM d_product
-WHERE NOT prod_exp_dt RLIKE '^[0-9]{8}$';
 
--- Display 5 sample records where 'prod_exp_dt' is not in the correct format
+/* 
+   Scenario: Validate `prod_exp_dt` format 
+   Ensure `prod_exp_dt` is in 'yyyyMMdd' format; retrieve count and samples
+*/
+
+WITH invalid_prod_exp_dt AS (
+  SELECT *
+  FROM d_product
+  WHERE NOT REGEXP_LIKE(prod_exp_dt, '^\d{8}$')
+)
+
+SELECT COUNT(*) AS invalid_prod_exp_dt_count FROM invalid_prod_exp_dt;
+
 SELECT *
-FROM d_product
-WHERE NOT prod_exp_dt RLIKE '^[0-9]{8}$'
+FROM invalid_prod_exp_dt
 LIMIT 5;
+
+
+/* Cleanup operations, if needed, add here 
+   -- Example cleanup code:
+   -- DROP VIEW IF EXISTS null_item_nbr;
+   -- DROP VIEW IF EXISTS null_sellable_qty;
+   -- DROP VIEW IF EXISTS invalid_prod_exp_dt;
+*/
