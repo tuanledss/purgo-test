@@ -1,73 +1,64 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, lit, udf
+from pyspark.sql.functions import col, expr, udf
 from pyspark.sql.types import StringType
 import json
-import datetime
-import base64
-from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
+from datetime import datetime
+from cryptography.fernet import Fernet
 
-# Initialize Spark session
-spark = SparkSession.builder.appName("EncryptPIIData").getOrCreate()
+# Create Spark session
+spark = SparkSession.builder \
+    .appName("Databricks PII Encryption") \
+    .getOrCreate()
 
-# Drop the clone table if it exists
-spark.sql("DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone")
+# Drop the clone table if exists
+spark.sql("DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone12")
 
 # Create a replica of the original table
-spark.sql("""
-CREATE TABLE purgo_playground.customer_360_raw_clone AS
-SELECT * FROM purgo_playground.customer_360_raw
-""")
+spark.sql("CREATE TABLE purgo_playground.customer_360_raw_clone12 AS SELECT * FROM purgo_playground.customer_360_raw")
 
-# Generate a random AES-256 encryption key
-encryption_key = get_random_bytes(32)  # 256 bits
+# Key generation and encryption logic
+encryption_key = Fernet.generate_key()
+cipher = Fernet(encryption_key)
 
-# Save the encryption key as a JSON file
-current_datetime = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-key_file_path = f"/Volumes/agilisium_playground/purgo_playground/de_dq/encryption_key_{current_datetime}.json"
-with open(key_file_path, 'w') as key_file:
-    json.dump({"encryption_key": base64.b64encode(encryption_key).decode('utf-8')}, key_file)
-
-# Define encryption function
-def encrypt_data(data, key):
+def encrypt(data):
     if data is None:
         return None
-    cipher = AES.new(key, AES.MODE_EAX)
-    ciphertext, tag = cipher.encrypt_and_digest(data.encode('utf-8'))
-    return base64.b64encode(cipher.nonce + tag + ciphertext).decode('utf-8')
+    return cipher.encrypt(data.encode()).decode()
 
-# Register UDF for encryption
-encrypt_udf = udf(lambda x: encrypt_data(x, encryption_key), StringType())
+encrypt_udf = udf(encrypt, StringType())
 
-# Load the clone table
-df_clone = spark.table("purgo_playground.customer_360_raw_clone")
+# Encrypt specified columns
+columns_to_encrypt = ["name", "email", "phone", "zip"]
 
-# Encrypt PII columns
-df_encrypted = df_clone.withColumn("name", encrypt_udf(col("name"))) \
-                       .withColumn("email", encrypt_udf(col("email"))) \
-                       .withColumn("phone", encrypt_udf(col("phone"))) \
-                       .withColumn("zip", encrypt_udf(col("zip")))
+df = spark.table("purgo_playground.customer_360_raw_clone12")
+for column in columns_to_encrypt:
+    df = df.withColumn(column, encrypt_udf(col(column)))
 
-# Save the encrypted data back to the clone table
-df_encrypted.write.mode("overwrite").saveAsTable("purgo_playground.customer_360_raw_clone")
+# Write back the encrypted data
+df.write.mode('overwrite').saveAsTable("purgo_playground.customer_360_raw_clone12")
 
-# Test data generation for various scenarios
+# Save the encryption key
+encryption_key_data = {"key": encryption_key.decode()}
+current_datetime = datetime.now().strftime("%Y%m%d%H%M%S")
+encryption_key_file = f"/dbfs/Volumes/agilisium_playground/purgo_playground/de_dq12/encryption_key_{current_datetime}.json"
+
+with open(encryption_key_file, 'w') as f:
+    json.dump(encryption_key_data, f)
+
+# Generate comprehensive test data for the replica table
 test_data = [
-    # Happy path test data
-    (1, "John Doe", "john.doe@example.com", "1234567890", "Company A", "Engineer", "123 Main St", "CityA", "StateA", "12345", "CountryA", "IndustryA", "ManagerA", "2023-01-01", "2023-02-01", "HistoryA", "NotesA", 0),
-    # Edge cases
-    (2, "Jane Smith", "jane.smith@example.com", "0987654321", "Company B", "Manager", "456 Elm St", "CityB", "StateB", "54321", "CountryB", "IndustryB", "ManagerB", "2023-01-02", "2023-02-02", "HistoryB", "NotesB", 1),
-    # Error cases
-    (3, None, "invalid_email", "0000000000", "Company C", "Director", "789 Oak St", "CityC", "StateC", "00000", "CountryC", "IndustryC", "ManagerC", "2023-01-03", "2023-02-03", "HistoryC", "NotesC", 0),
-    # NULL handling scenarios
-    (4, None, None, None, "Company D", "Analyst", "101 Pine St", "CityD", "StateD", None, "CountryD", "IndustryD", "ManagerD", "2023-01-04", "2023-02-04", "HistoryD", "NotesD", 1),
-    # Special characters and multi-byte characters
-    (5, "José Álvarez", "jose.álvarez@example.com", "+1-800-555-0199", "Company E", "Consultant", "202 Birch St", "CityE", "StateE", "67890", "CountryE", "IndustryE", "ManagerE", "2023-01-05", "2023-02-05", "HistoryE", "NotesE", 0)
+    (1, "Alice", "alice@example.com", "+123456789", "12345", "ACME Corp", "Engineer", "123 St", "CityX", "StateX", "CountryX", "Tech", "John Doe", "2024-01-01", "2024-01-15", "Purchase1", "Note1", "12345", 0),
+    # Happy path, valid scenario
+    (2, "Bob", "bob@example.com", "+987654321", "54321", "Globex", "Manager", "456 Av", "CityY", "StateY", "CountryY", "Finance", "Jane Smith", "2024-02-01", "2024-02-20", "Purchase2", "Note2", "54321", 1),
+    # Edge case, long name
+    (3, "Carolyn Elizabeth Johnson-Smith", "carol@example.com", "+198765432", "67890", "Initech", "Researcher", "789 Blvd", "CityZ", "StateZ", "CountryZ", "Health", "Richard Roe", "2024-03-01", "2024-03-30", "Purchase3", "Note3", "67890", 0),
+    # Error case, invalid phone number
+    (4, "Dave", "dave@example.com", "INVALID_PHONE", "98765", "Hooli", "Director", "101 Rd", "CityW", "StateW", "CountryW", "Education", "Mary Major", "2024-04-01", "2024-04-25", "Purchase4", "Note4", "98765", 1),
+    # NULL handling, missing email
+    (5, "Eve", None, "+1122334455", "11223", "Massive Dynamic", "Intern", "202 Ln", "CityV", "StateV", "CountryV", "Retail", "Ellen Ripley", "2024-05-01", "2024-05-15", "Purchase5", "Note5", "11223", 0),
+    # Special characters and multi-byte characters in name
+    (6, "Chírø Nishikáðó", "hiro@example.com", "+5566778899", "99887", "Wonka Industries", "Consultant", "303 St", "CityU", "StateU", "CountryU", "Travel", "Will Riker", "2024-06-01", "2024-06-10", "Purchase6", "Note6", "99887", 1)
 ]
 
-# Create DataFrame with test data
-schema = df_clone.schema
-test_df = spark.createDataFrame(test_data, schema)
-
-# Show test data
-test_df.show(truncate=False)
+test_df = spark.createDataFrame(test_data, schema=df.schema)
+test_df.write.mode('append').saveAsTable("purgo_playground.customer_360_raw_clone12")
