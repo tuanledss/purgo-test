@@ -1,17 +1,20 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, lit, udf
+from pyspark.sql.functions import col, lit, udf, expr
 from pyspark.sql.types import StringType, StructType, StructField, LongType, DoubleType, ArrayType, MapType, TimestampType
 import datetime
 import json
 import base64
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
+import unittest
 
 # Initialize Spark session
-spark = SparkSession.builder.appName("TestDataGeneration").getOrCreate()
+spark = SparkSession.builder.appName("TestEncryption").getOrCreate()
 
 # Define encryption function
 def encrypt_data(data, key):
+    if data is None:
+        return None
     cipher = AES.new(key, AES.MODE_EAX)
     nonce = cipher.nonce
     ciphertext, tag = cipher.encrypt_and_digest(data.encode('utf-8'))
@@ -50,7 +53,6 @@ data = [
     (3, None, None, None, None, "2024-03-21T00:00:00.000+0000", None, [], {}),
     (4, "Special Chars !@#$%^&*()", "special@example.com", "1112223333", "00000", "2024-03-21T00:00:00.000+0000", 300.00, ["tag4"], {"key3": "value3"}),
     (5, "Multi-byte 文字", "multibyte@example.com", "4445556666", "99999", "2024-03-21T00:00:00.000+0000", 400.25, ["tag5"], {"key4": "value4"}),
-    # Add more records as needed for edge cases, error cases, etc.
 ]
 
 # Create DataFrame
@@ -62,9 +64,59 @@ df_encrypted = df.withColumn("name", encrypt_udf(col("name"))) \
                  .withColumn("phone", encrypt_udf(col("phone"))) \
                  .withColumn("zip", encrypt_udf(col("zip")))
 
-# Show encrypted data
-df_encrypted.show(truncate=False)
-
 # Save encrypted data to a new table
 df_encrypted.write.mode("overwrite").saveAsTable("purgo_playground.customer_360_raw_clone12")
+
+# Unit Test Class
+class TestEncryption(unittest.TestCase):
+
+    def test_schema_validation(self):
+        expected_schema = StructType([
+            StructField("id", LongType(), False),
+            StructField("name", StringType(), True),
+            StructField("email", StringType(), True),
+            StructField("phone", StringType(), True),
+            StructField("zip", StringType(), True),
+            StructField("timestamp", TimestampType(), True),
+            StructField("amount", DoubleType(), True),
+            StructField("tags", ArrayType(StringType()), True),
+            StructField("attributes", MapType(StringType(), StringType()), True)
+        ])
+        self.assertEqual(df_encrypted.schema, expected_schema)
+
+    def test_data_type_conversion(self):
+        self.assertTrue(all(isinstance(row['name'], str) for row in df_encrypted.collect()))
+        self.assertTrue(all(isinstance(row['email'], str) for row in df_encrypted.collect()))
+        self.assertTrue(all(isinstance(row['phone'], str) for row in df_encrypted.collect()))
+        self.assertTrue(all(isinstance(row['zip'], str) for row in df_encrypted.collect()))
+
+    def test_null_handling(self):
+        null_row = df_encrypted.filter(col("id") == 3).collect()[0]
+        self.assertIsNone(null_row['name'])
+        self.assertIsNone(null_row['email'])
+        self.assertIsNone(null_row['phone'])
+        self.assertIsNone(null_row['zip'])
+
+    def test_encryption(self):
+        encrypted_row = df_encrypted.filter(col("id") == 1).collect()[0]
+        self.assertNotEqual(encrypted_row['name'], "John Doe")
+        self.assertNotEqual(encrypted_row['email'], "john.doe@example.com")
+        self.assertNotEqual(encrypted_row['phone'], "1234567890")
+        self.assertNotEqual(encrypted_row['zip'], "12345")
+
+    def test_encryption_key_saved(self):
+        with open(key_file_path, 'r') as key_file:
+            key_data = json.load(key_file)
+        self.assertIn("encryption_key", key_data)
+
+    def test_performance(self):
+        import time
+        start_time = time.time()
+        df_encrypted.collect()
+        end_time = time.time()
+        self.assertLess(end_time - start_time, 300)  # 5 minutes
+
+# Run the tests
+if __name__ == '__main__':
+    unittest.main(argv=['first-arg-is-ignored'], exit=False)
 
