@@ -1,79 +1,92 @@
-# Import necessary PySpark libraries
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType, DoubleType, DecimalType, ArrayType, MapType
-from pyspark.sql.functions import col, expr
+from pyspark.sql.functions import expr
+from pyspark.sql.types import (
+    StructType,
+    StructField,
+    StringType,
+    DoubleType,
+    TimestampType,
+    DecimalType
+)
 
 # Create Spark session
-spark = SparkSession.builder \
-    .appName("Databricks Test Data Generation") \
-    .getOrCreate()
+spark = SparkSession.builder.appName("TestDataGeneration").getOrCreate()
 
-# Define schema for d_product table
+# Define schema for the test data
 schema = StructType([
-    StructField("prod_id", IntegerType(), False),
+    StructField("prod_id", StringType(), True),
     StructField("item_nbr", StringType(), True),
-    StructField("sellable_qty", IntegerType(), True),
-    StructField("prod_exp_dt", StringType(), True)
+    StructField("unit_cost", DoubleType(), True),
+    StructField("prod_exp_dt", DecimalType(38, 0), True),
+    StructField("cost_per_pkg", DoubleType(), True),
+    StructField("plant_add", StringType(), True),
+    StructField("plant_loc_cd", StringType(), True),
+    StructField("prod_line", StringType(), True),
+    StructField("stock_type", StringType(), True),
+    StructField("pre_prod_days", DoubleType(), True),
+    StructField("sellable_qty", DoubleType(), True),
+    StructField("prod_ordr_tracker_nbr", StringType(), True),
+    StructField("max_order_qty", StringType(), True),
+    StructField("flag_active", StringType(), True),
+    StructField("crt_dt", TimestampType(), True),
+    StructField("updt_dt", TimestampType(), True),
+    StructField("src_sys_cd", StringType(), True),
+    StructField("hfm_entity", StringType(), True)
 ])
 
-# Generates happy path test data (valid scenarios)
-happy_data = [
-    (1, "A123", 50, "20240321"),
-    (2, "B456", 10, "20240322"),
-    (3, "C789", 25, "20240323"),
-    (4, "D012", 5, "20240324"),
-    (5, "E345", 100, "20240325")
+# Generate diverse test data
+data = [
+    # Happy Path - Valid entries
+    ("prod1", "item001", 12.5, 20240321, 3.5, "Addr1", "Loc1", "Line1", "Type1", 15, 5.0, "tracker001", "100", "Y", "2024-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", "SRC1", "Entity1"),
+    ("prod2", "item002", 20.7, 20240322, 4.1, "Addr2", "Loc2", "Line2", "Type2", 10, 8.0, "tracker002", "200", "N", "2024-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", "SRC2", "Entity1"),
+    # Edge Cases - Boundary Values
+    ("prod3", "item003", 5.0, 20240101, 2.0, "Addr3", "Loc3", "Line3", "Type3", 0, 0.0, "tracker003", "0", "Y", "2024-01-01T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", "SRC3", "Entity2"),
+    # NULL Scenarios
+    (None, "item004", 15.0, None, 1.0, None, "Loc4", "Line4", None, None, None, "tracker004", "500", "Y", "2024-02-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", None, "Entity3"),
+    # Invalid Data
+    ("prod5", "item005", -5.0, 20241231, 5.5, "Addr5", "Loc5", "Line5", "Type5", -10, -2.0, "tracker005", "-50", "N", "2025-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", "SRC5", "Entity5"),
+    # Special Characters
+    ("prod6", "item006_special_!@#", 18.4, 20240325, 3.9, "Addr&*^$", "Lo?<>(:)", "Line6{}[]", "Type6~`", 20, 7.5, "tracker006_^^", "300", "N", "2024-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", "SRC6", "Entity6"),
+    # Multi-byte Characters
+    ("prod7", "item007_日本語", 19.3, 20240401, 4.7, "Addr日本語", "Loc日本語", "Line7日本語", "Type7", 12, 6.3, "tracker007_日本語", "120", "Y", "2024-03-21T00:00:00.000+0000", "2024-03-21T00:00:00.000+0000", "SRC7", "Entity7"),
+    # More diverse examples
+    # ... add up to 20-30 records as needed for thorough testing
 ]
-
-# Edge cases (boundary conditions)
-edge_data = [
-    (6, "F678", 0, "20241231"),     # Boundary for sellable_qty
-    (7, "G901", 2147483647, "20240101") # Max INT value
-]
-
-# Error cases for invalid scenarios
-error_data = [
-    (8, None, 10, "20240321"),          # NULL item_nbr
-    (9, "I123", None, "20240322"),      # NULL sellable_qty
-    (10, "J456", 20, "2024-03-21"),     # Invalid date format
-    (11, "K789", 30, "March 21, 2024"), # Invalid date format
-    (12, "L012", 40, "21032024")        # Incorrect date format
-]
-
-# NULL handling scenarios
-null_data = [
-    (13, None, None, None)   # All fields null
-]
-
-# Special characters and multi-byte characters
-special_data = [
-    (14, "想67😃", 50, "20240330"),  # Multibyte character in item_nbr
-    (15, "M890!@#", 20, "20240331") # Special characters in item_nbr
-]
-
-# Combine all data into a single list
-test_data = happy_data + edge_data + error_data + null_data + special_data
 
 # Create DataFrame
-df_d_product = spark.createDataFrame(test_data, schema)
+df = spark.createDataFrame(data, schema)
 
-# Show the resulting DataFrame
-df_d_product.show(truncate=False)
+# Display the DataFrame
+df.show(truncate=False)
 
-# Data quality checks
+# SQL data quality checks
+# Check if 'item_nbr' or 'sellable_qty' is NULL and get the counts and sample records
+df.createOrReplaceTempView("d_product")
 
-# Check for NULL item_nbr
-df_null_item_nbr = df_d_product.filter(col("item_nbr").isNull())
-df_null_item_nbr.show(5)
-print(f"Count of records with NULL 'item_nbr': {df_null_item_nbr.count()}")
+# Check 'item_nbr' is not null
+spark.sql("""
+SELECT COUNT(*) AS null_item_nbr_count FROM d_product WHERE item_nbr IS NULL
+""").show()
 
-# Check for NULL sellable_qty
-df_null_sellable_qty = df_d_product.filter(col("sellable_qty").isNull())
-df_null_sellable_qty.show(5)
-print(f"Count of records with NULL 'sellable_qty': {df_null_sellable_qty.count()}")
+spark.sql("""
+SELECT * FROM d_product WHERE item_nbr IS NULL LIMIT 5
+""").show()
 
-# Check for incorrect prod_exp_dt format (not YYYYMMDD)
-df_invalid_date_format = df_d_product.filter(~expr("prod_exp_dt LIKE '_______'"))
-df_invalid_date_format.show(5)
-print(f"Count of records with incorrect 'prod_exp_dt' format: {df_invalid_date_format.count()}")
+# Check 'sellable_qty' is not null
+spark.sql("""
+SELECT COUNT(*) AS null_sellable_qty_count FROM d_product WHERE sellable_qty IS NULL
+""").show()
+
+spark.sql("""
+SELECT * FROM d_product WHERE sellable_qty IS NULL LIMIT 5
+""").show()
+
+# Check 'prod_exp_dt' is not in 'yyyymmdd' format
+spark.sql("""
+SELECT COUNT(*) AS invalid_prod_exp_dt_count FROM d_product WHERE NOT prod_exp_dt RLIKE '^\d{8}$'
+""").show()
+
+spark.sql("""
+SELECT * FROM d_product WHERE NOT prod_exp_dt RLIKE '^\d{8}$' LIMIT 5
+""").show()
 
