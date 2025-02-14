@@ -1,47 +1,62 @@
-Feature: Encrypt PII Data in Customer 360 Table
+Feature: Encrypt PII data in customer_360_raw_clone table
 
   Background:
-    Given the table "purgo_playground.customer_360_raw_clone" does not exist
-    When the table "purgo_playground.customer_360_raw_clone" is created as a replica of "purgo_playground.customer_360_raw"
-    Then the table "purgo_playground.customer_360_raw_clone" is ready for encryption
+    Given a connection to the Databricks environment
+    And the table purgo_playground.customer_360_raw_clone exists
+    And the table purgo_playground.customer_360_raw_clone12 does not exist
 
-  Scenario: Encrypt PII columns in the customer_360_raw_clone table
-    Given the PII columns "name", "email", "phone", and "zip" in the table "purgo_playground.customer_360_raw_clone"
-    When the encryption algorithm "AES-256" is applied to the PII columns
-    Then the PII columns are encrypted successfully
-    And the encrypted data is stored in the table "purgo_playground.customer_360_raw_clone"
-    And the encryption key is saved as a JSON file named "encryption_key_<current_datetime>.json" in the location "/Volumes/agilisium_playground/purgo_playground/de_dq"
+  Scenario: Prepare the environment
+    Given I drop the table purgo_playground.customer_360_raw_clone12 if it exists
+    When I create a replica of purgo_playground.customer_360_raw as purgo_playground.customer_360_raw_clone12
+    Then the table purgo_playground.customer_360_raw_clone12 should exist with the same schema as purgo_playground.customer_360_raw
 
-  Scenario Outline: Validate encryption process
-    Given the encrypted column "<column_name>" in the table "purgo_playground.customer_360_raw_clone"
-    When the data is decrypted using the saved encryption key
-    Then the decrypted data matches the original data in the column "<column_name>" of the table "purgo_playground.customer_360_raw"
+  Scenario Outline: Encrypt PII data
+    Given I connect to the purgo_playground.customer_360_raw_clone12 table
+    When I encrypt the "<column>" column using AES-256 encryption
+    Then the "<column>" column should be encrypted
+    And an encryption key should be generated and saved as JSON
+    And the file should be named encryption_key_<current_datetime>.json
+    And the file should be stored in /Volumes/agilisium_playground/purgo_playground/de_dq12
 
     Examples:
-      | column_name |
-      | name        |
-      | email       |
-      | phone       |
-      | zip         |
+      | column  |
+      | name    |
+      | email   |
+      | phone   |
+      | zip     |
 
-  Scenario: Handle missing encryption key
-    Given the encryption process is initiated
-    When the encryption key cannot be generated
-    Then an error message "Encryption key generation failed" is logged
-    And the process is halted
+  Scenario: Validate PII encryption process
+    Given I connect to the purgo_playground.customer_360_raw_clone12 table
+    When I validate the encryption key has been saved securely
+    Then the encryption key file should exist in the specified volume location
+    And the file should follow the JSON format with structure {"key": "<encrypted_key_value>"}
 
-  Scenario: Handle invalid data format
-    Given the PII column "email" contains invalid data format
-    When the encryption process is attempted
-    Then an error message "Invalid data format in column email" is logged
-    And the process skips the invalid record
+  Scenario: Handle missing columns during encryption
+    Given I connect to the purgo_playground.customer_360_raw_clone12 table
+    When I attempt to encrypt a non-existent column "<column>"
+    Then an error should be thrown
+    And the error message should read "Column <column> does not exist"
 
-  Scenario: Ensure compliance with data protection standards
-    Given the encryption process is completed
-    When the data is reviewed for compliance
-    Then the process adheres to GDPR and CCPA standards
+    Examples:
+      | column     |
+      | salary     |
+      | birth_date |
 
-  Scenario: Performance benchmark validation
-    Given the encryption process is initiated
-    When the process is completed
-    Then the total execution time is less than 5 minutes for 1 million records
+  Scenario: Error handling during encryption failure
+    Given I simulate a failure in the encryption process
+    When the encryption process fails
+    Then an error should be logged
+    And the error message should be "Encryption failed due to system error"
+
+  Scenario: Validate data integrity post-encryption
+    Given I connect to the purgo_playground.customer_360_raw_clone12 table
+    When I retrieve encrypted data from the "<column>" column
+    Then the data should be unreadable without decryption
+
+    Examples:
+      | column  |
+      | name    |
+      | email   |
+      | phone   |
+      | zip     |
+
