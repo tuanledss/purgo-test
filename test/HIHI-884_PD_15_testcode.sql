@@ -1,59 +1,61 @@
--- SQL Test Code for Data Quality Checks in Databricks Environment
+-- Databricks SQL Test Code for Data Quality Checks on d_product Table
 
--- /* --------------------------------------------------------------
--- Section: Setup Instructions
--- Note: Ensure Unity Catalog is configured correctly.
---       This code assumes you are using Databricks SQL syntax and
---       Databricks-native features like Delta Lake.
---       Use Unity Catalog for schema reference: "purgo_playground.d_product"
---          -------------------------------------------------------------- */
+-- /* =============================================================== */
+-- /* Setup Section: */
+-- /* Ensure to use the appropriate catalog and schema */
+-- /* =============================================================== */
 
--- /* Check for NULL item_nbr */
+USE CATALOG purgo_playground;
+USE SCHEMA purgo_playground;
 
--- Retrieve count of records with NULL 'item_nbr'
-WITH null_item_nbr_check AS (
-  SELECT COUNT(*) AS null_item_nbr_count
-  FROM purgo_playground.d_product
-  WHERE item_nbr IS NULL
+-- /* =============================================================== */
+-- /* Test: Verify item_nbr is not null */
+-- /* =============================================================== */
+
+-- Check for records where item_nbr is null
+WITH null_item_nbr AS (
+  SELECT * FROM d_product WHERE item_nbr IS NULL
 )
-SELECT null_item_nbr_count FROM null_item_nbr_check;
+SELECT COUNT(*) AS null_item_nbr_count
+FROM null_item_nbr;
 
--- Display 5 sample records with NULL 'item_nbr'
-SELECT *
-FROM purgo_playground.d_product 
-WHERE item_nbr IS NULL
-LIMIT 5;
+-- Retrieve 5 sample records where item_nbr is null
+SELECT * FROM null_item_nbr LIMIT 5;
 
--- /* Check for NULL sellable_qty */
+-- /* =============================================================== */
+-- /* Test: Verify sellable_qty is not null */
+-- /* =============================================================== */
 
--- Retrieve count of records with NULL 'sellable_qty'
-WITH null_sellable_qty_check AS (
-  SELECT COUNT(*) AS null_sellable_qty_count
-  FROM purgo_playground.d_product
-  WHERE sellable_qty IS NULL
+-- Check for records where sellable_qty is null
+WITH null_sellable_qty AS (
+  SELECT * FROM d_product WHERE sellable_qty IS NULL
 )
-SELECT null_sellable_qty_count FROM null_sellable_qty_check;
+SELECT COUNT(*) AS null_sellable_qty_count
+FROM null_sellable_qty;
 
--- Display 5 sample records with NULL 'sellable_qty'
-SELECT *
-FROM purgo_playground.d_product 
-WHERE sellable_qty IS NULL
-LIMIT 5;
+-- Retrieve 5 sample records where sellable_qty is null
+SELECT * FROM null_sellable_qty LIMIT 5;
 
--- /* Check for incorrect 'prod_exp_dt' format */
+-- /* =============================================================== */
+-- /* Test: Validate prod_exp_dt format (YYYYMMDD) */
+-- /* =============================================================== */
 
--- Retrieve count of records with incorrect 'prod_exp_dt' format
-WITH invalid_date_format_check AS (
-  SELECT COUNT(*) AS invalid_prod_exp_dt_count
-  FROM purgo_playground.d_product
-  WHERE NOT REGEXP_LIKE(prod_exp_dt, '^[0-9]{8}$')
+-- Check for records where prod_exp_dt is not in the YYYYMMDD format
+WITH invalid_prod_exp_dt AS (
+  SELECT *
+  FROM d_product 
+  WHERE NOT (prod_exp_dt RLIKE '^[0-9]{8}$')
 )
-SELECT invalid_prod_exp_dt_count FROM invalid_date_format_check;
+SELECT COUNT(*) AS invalid_prod_exp_dt_count
+FROM invalid_prod_exp_dt;
 
--- Display 5 sample records with incorrect 'prod_exp_dt' format
-SELECT *
-FROM purgo_playground.d_product 
-WHERE NOT REGEXP_LIKE(prod_exp_dt, '^[0-9]{8}$')
-LIMIT 5;
+-- Retrieve 5 sample records where prod_exp_dt is not in the YYYYMMDD format
+SELECT * FROM invalid_prod_exp_dt LIMIT 5;
 
--- /* Clean-up operations such as logging errors or storing results for audit can be added here. */
+-- /* =============================================================== */
+-- /* Cleanup Section: */
+-- /* Optional: Add any cleanup operations here if needed */
+-- /* =============================================================== */
+
+-- Cleanup can involve deletion of temporary tables or restoration of original state
+
