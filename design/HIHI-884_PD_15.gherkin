@@ -1,64 +1,61 @@
 Feature: Data Quality Check for d_product Table
 
-  As a Data Quality Engineer,
-  I want to validate the data in the purgo_playground.d_product table,
-  So that I can ensure the data quality before moving data to PROD.
-
   Background:
-    Given the table purgo_playground.d_product exists
-    And the table has columns prod_id, item_nbr, sellable_qty, prod_exp_dt
+    Given the table "purgo_playground.d_product" exists
+    And the table has the following columns:
+      | Column Name              | Data Type         |
+      | prod_id                  | string            |
+      | item_nbr                 | string            |
+      | unit_cost                | double            |
+      | prod_exp_dt              | decimal(38,0)     |
+      | cost_per_pkg             | double            |
+      | plant_add                | string            |
+      | plant_loc_cd             | string            |
+      | prod_line                | string            |
+      | stock_type               | string            |
+      | pre_prod_days            | double            |
+      | sellable_qty             | double            |
+      | prod_ordr_tracker_nbr    | string            |
+      | max_order_qty            | string            |
+      | flag_active              | string            |
+      | crt_dt                   | timestamp         |
+      | updt_dt                  | timestamp         |
+      | src_sys_cd               | string            |
+      | hfm_entity               | string            |
 
-  Scenario: Validate 'item_nbr' is not null
-    Given the table purgo_playground.d_product has a column item_nbr
-    When I execute the SQL to count the records where item_nbr is null
-    Then I receive a count of records where item_nbr is null
-    And the count should be less than or equal to the acceptable threshold
-    When I execute the SQL to fetch sample records
-    Then I receive 5 sample records where item_nbr is null
+  Scenario: Check for Null Values in item_nbr
+    Given the SQL logic is executed
+    When querying for records where "item_nbr" is null
+    Then the count of records with null "item_nbr" should be displayed
+    And 5 sample records with null "item_nbr" should be displayed
 
-  Scenario: Validate 'sellable_qty' is not null
-    Given the table purgo_playground.d_product has a column sellable_qty
-    When I execute the SQL to count the records where sellable_qty is null
-    Then I receive a count of records where sellable_qty is null
-    And the count should be less than or equal to the acceptable threshold
-    When I execute the SQL to fetch sample records
-    Then I receive 5 sample records where sellable_qty is null
+  Scenario: Check for Null Values in sellable_qty
+    Given the SQL logic is executed
+    When querying for records where "sellable_qty" is null
+    Then the count of records with null "sellable_qty" should be displayed
+    And 5 sample records with null "sellable_qty" should be displayed
 
-  Scenario: Validate 'prod_exp_dt' format
-    Given the table purgo_playground.d_product has a column prod_exp_dt
-    When I execute the SQL to count the records where prod_exp_dt is not in 'yyyymmdd' format
-    Then I receive a count of records where prod_exp_dt is invalid
-    And the count should be less than or equal to the acceptable threshold
-    When I execute the SQL to fetch sample records
-    Then I receive 5 sample records where prod_exp_dt is invalid
+  Scenario: Check for Incorrect Date Format in prod_exp_dt
+    Given the SQL logic is executed
+    When querying for records where "prod_exp_dt" is not in yyyymmdd format
+    Then the count of records with incorrect "prod_exp_dt" format should be displayed
+    And 5 sample records with incorrect "prod_exp_dt" format should be displayed
 
-  Scenario Outline: Error Handling for SQL Execution Errors
-    Given the SQL execution might fail due to "<error reason>"
-    When I execute the SQL for validation
-    Then I encounter an error message "<error message>"
-    And the system logs the error for further analysis
+  Scenario Outline: Validate Data Quality Checks
+    Given the SQL logic is executed
+    When querying for records with <condition>
+    Then the count of records with <condition> should be <expected_count>
+    And <sample_count> sample records with <condition> should be displayed
 
     Examples:
-      | error reason           | error message                                        |
-      | syntax error           | "SQL syntax error on line X"                        |
-      | connection issue       | "Failure to connect to the database server"         |
-      | permission denied      | "User lacks the necessary permissions"              |
-      | resource limitations   | "Resource limit exceeded, try again later"          |
-      | invalid data type      | "Data type mismatch during validation"              |
+      | condition                        | expected_count | sample_count |
+      | "item_nbr is null"               | 10             | 5            |
+      | "sellable_qty is null"           | 8              | 5            |
+      | "prod_exp_dt not in yyyymmdd"    | 15             | 5            |
 
-  Scenario Outline: Validation Rules for null and format checks
-    Given a validation rule <rule> applied to <column>
-    When I execute the SQL with the '<rule check>'
-    Then I expect the validation to "{outcome}"
+  Scenario: Error Handling for SQL Execution
+    Given the SQL logic is executed
+    When an error occurs during execution
+    Then an error message "SQL execution failed" should be displayed
+    And the error should be logged for further analysis
 
-    Examples:
-      | rule                               | column       | rule check                                         | outcome   |
-      | item_nbr should not be null        | item_nbr     | SELECT COUNT(*) WHERE item_nbr IS NULL;            | fail      |
-      | sellable_qty should not be null    | sellable_qty | SELECT COUNT(*) WHERE sellable_qty IS NULL;        | fail      |
-      | prod_exp_dt should be in yyyymmdd  | prod_exp_dt  | SELECT COUNT(*) WHERE prod_exp_dt NOT REGEXP '^\d{8}$'; | pass     |
-
-  # SQL Queries should be executed and validated according to business rules
-  # Acceptance Criteria:
-  # - Item numbers and sellable quantities must not be null.
-  # - 'prod_exp_dt' should follow the 'yyyymmdd' format.
-  # - Log errors for any unforeseen SQL execution issues.
