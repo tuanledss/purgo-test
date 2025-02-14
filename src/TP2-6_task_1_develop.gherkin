@@ -1,0 +1,35 @@
+Feature: Encrypt PII Data in customer_360_raw Table
+
+  Background:
+    Given the table {{customer_360_raw_clone12}} does not exist
+    When the table {{customer_360_raw_clone12}} is created as a replica of {{customer_360_raw12}}
+    Then the table {{customer_360_raw_clone12}} is ready for encryption
+
+  Scenario: Encrypt PII columns in customer_360_raw_clone12 table
+    Given the PII columns are "name", "email", "phone", "zip"
+    When the PySpark script is executed to encrypt the PII columns
+    Then the encrypted data is loaded into the {{customer_360_raw_clone12}} table
+    And the encryption key is saved as a JSON file named encryption_key_<current_datetime> in the location {{/Volumes/agilisium_playground/purgo_playground/de_dq12}}
+
+  Scenario Outline: Validate encryption process with different PII data
+    Given the PII data is "<name>", "<email>", "<phone>", "<zip>"
+    When the PySpark script encrypts the PII data
+    Then the encrypted data should not match the original data
+    And the encryption key should be stored securely
+
+    Examples:
+      | name       | email                | phone       | zip   |
+      | John Doe   | john.doe@example.com | 1234567890  | 12345 |
+      | Jane Smith | jane.smith@example.com | 0987654321 | 54321 |
+
+  Scenario: Handle error when encryption key cannot be saved
+    Given the encryption process is complete
+    When the system attempts to save the encryption key
+    And the volume location is unavailable
+    Then an error message "Failed to save encryption key: Volume location unavailable" is displayed
+
+  Scenario: Handle error when PII column is missing
+    Given the PII column "address" is not present in the table
+    When the PySpark script attempts to encrypt the "address" column
+    Then an error message "Column 'address' not found in table" is displayed
+
