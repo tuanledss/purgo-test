@@ -1,54 +1,55 @@
-Feature: Encrypt PII Data in customer_360_raw_clone Table
+Feature: Encrypt PII Data in Databricks PySpark
 
   Background:
-    Given a connection to the purgo_playground database
-    And the customer_360_raw table exists in the database
+    Given the table {{customer_360_raw_clone12}} does not exist
+    When the table {{customer_360_raw_clone12}} is created as a replica of {{customer_360_raw12}}
+    Then the table {{customer_360_raw_clone12}} is ready for encryption
 
-  Scenario: Encrypt PII columns for new data compliance
-    Given the customer_360_raw_clone table does not exist
-    When I create a replica of the customer_360_raw table
-    Then the customer_360_raw_clone table should exist
-    And the schema of customer_360_raw_clone should match customer_360_raw
+  Scenario: Encrypt PII columns in the customer_360_raw_clone12 table
+    Given the PII columns are "name", "email", "phone", and "zip"
+    And the encryption method is AES-256
+    When the PySpark script is executed to encrypt the PII columns
+    Then the encrypted data is loaded into the {{customer_360_raw_clone12}} table
+    And the encryption key is saved as a JSON file named encryption_key_<current_datetime> in the location {{/Volumes/agilisium_playground/purgo_playground/de_dq12}}
 
-  Scenario Outline: Encrypt specific columns in customer_360_raw_clone
-    Given the columns to be encrypted are <columns>
-    And the encryption algorithm is <algorithm> using library <library>
-    When I apply encryption to the <columns> in customer_360_raw_clone
-    Then the data in <columns> should be securely encrypted
-    And the encryption key should be saved as encryption_key_<current_datetime>.json
-    And the JSON file should be located at {{/Volumes/agilisium_playground/purgo_playground/de_dq}}
-
-    Examples:
-      | columns              | algorithm | library       |
-      | name, email, phone, zip | AES       | pyspark-crypto |
-
-  Scenario: Handle error when attempting encryption without proper initialization
-    Given the encryption environment is not initialized
-    When I try to encrypt PII data in the replica table
-    Then an error should occur with message "Encryption initialization failed"
-
-  Scenario: Verify access permissions for database operations
-    Given the necessary database permissions are not available
-    When I attempt to access or modify the customer_360_raw and customer_360_raw_clone tables
-    Then access should be denied
-    And an error message "Insufficient permissions to access required resources" should be shown
-
-  Scenario Outline: Validate encryption integrity
-    Given the column <column> is encrypted
-    When I attempt to decrypt and view the data in <column>
-    Then the decrypted data should match original values unless masked
-    And validation should pass without errors
+  Scenario Outline: Validate encryption process
+    Given the column "<column_name>" is encrypted
+    When the data is retrieved from the {{customer_360_raw_clone12}} table
+    Then the "<column_name>" should not be in plain text
+    And the data should be decryptable using the saved encryption key
 
     Examples:
-      | column  |
-      | name    |
-      | email   |
-      | phone   |
-      | zip     |
+      | column_name |
+      | name        |
+      | email       |
+      | phone       |
+      | zip         |
 
-  Scenario: Error handling when accessing non-existent JSON location
-    Given the JSON storage path is invalid or inaccessible
-    When I try to save the encryption key JSON
-    Then an error should occur with message "Failed to save JSON file at specified location"
+  Scenario: Handle error during encryption
+    Given the encryption process is initiated
+    When an error occurs during encryption
+    Then an error message "Encryption failed for column <column_name>" is logged
+    And the process is halted
 
+  Scenario Outline: Validate data format and integrity
+    Given the column "<column_name>" is encrypted
+    When the data is retrieved from the {{customer_360_raw_clone12}} table
+    Then the "<column_name>" should match the expected encrypted format
+    And the data integrity should be maintained
+
+    Examples:
+      | column_name |
+      | name        |
+      | email       |
+      | phone       |
+      | zip         |
+
+  Scenario: Performance benchmark for encryption
+    Given the encryption process is initiated
+    When the PySpark script is executed
+    Then the encryption process should complete within "<time_limit>" seconds
+
+    Examples:
+      | time_limit |
+      | 300        |
 
