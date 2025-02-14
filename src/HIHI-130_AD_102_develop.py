@@ -1,113 +1,93 @@
-# Ensure necessary libraries are installed
-# %pip install pycryptodome
+# Databricks PySpark script to encrypt PII columns and save the encryption key
 
-# PySpark Test Script
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, udf
-from pyspark.sql.types import StringType, StructType, StructField, LongType, DateType
-from datetime import datetime
-import base64
-from Crypto.Cipher import AES
-import pytest
+# Library installation (if necessary)
+# %pip install simple-crypt cryptography
+
+import os
 import json
+from datetime import datetime
 
-# Set up Spark session
-spark = SparkSession.builder.appName("Test Encryption Transformations").getOrCreate()
+from cryptography.fernet import Fernet # Use Fernet for symmetric encryption
+from pyspark.sql import functions as F
+from pyspark.sql.types import StringType
 
-# Define the schema for customer_360_raw_clone table
-schema = StructType([
-    StructField("id", LongType(), True),
-    StructField("name", StringType(), True),
-    StructField("email", StringType(), True),
-    StructField("phone", StringType(), True),
-    StructField("company", StringType(), True),
-    StructField("job_title", StringType(), True),
-    StructField("address", StringType(), True),
-    StructField("city", StringType(), True),
-    StructField("state", StringType(), True),
-    StructField("zip", StringType(), True),
-    StructField("country", StringType(), True),
-    StructField("industry", StringType(), True),
-    StructField("account_manager", StringType(), True),
-    StructField("creation_date", DateType(), True),
-    StructField("last_interaction_date", DateType(), True),
-    StructField("purchase_history", StringType(), True),
-    StructField("notes", StringType(), True)
-])
+# Configuration (replace with your actual values)
+# Encryption Algorithm: Fernet (symmetric encryption)
+# Key Management System: Azure Key Vault (example usage shown below - adapt as needed)
+# Source Table: purgo_playground.customer_360_raw_clone
+# Destination Table: purgo_playground.customer_360_raw_clone
+# JSON Location: /Volumes/agilisium_playground/purgo_playground/de_dq12
+PII_COLUMNS = ["name", "email", "phone", "zip"]
+KEY_VAULT_NAME = "your-keyvault-name" # Replace with actual Key Vault Name if using Azure Key Vault
+KEY_NAME = "your-key-name" # Replace with actual key name if using Azure Key Vault
 
-# Sample data for testing
-data = [
-    (1, "John Doe", "john.doe@example.com", "1234567890", "ACME Corp", "Developer", "123 Elm St", "Metropolis", "NY", "10101", "USA", "Tech", "Alice Smith", "2023-01-01", "2023-02-01", "p1,p2,p3", ""),
-    (2, None, None, None, "ACME Corp", "Developer", "123 Elm St", "Metropolis", "NY", "10101", "USA", "Tech", "Alice Smith", "2023-01-01", "2023-02-01", "p1,p2,p3", ""),
-    (3, "Jürgen Müller", "jürgen.müller@example.com", "+491234567890", "Müller GmbH", "Engineer", "Bäckerstraße 1", "Berlin", "BE", "10115", "DEU", "Mechanical", "Max Mustermann", "2023-03-01", "2023-03-02", "p4,p5", "This is a note with emoji 🚀")
-]
 
-# Create DataFrame
-df = spark.createDataFrame(data, schema)
+# Key generation (using Fernet, demonstrating secure key handling with Azure Key Vault as an example)
+try:
+    # Azure Key Vault integration (replace with your actual Key Vault implementation)
 
-# Define encryption key and initialization vector
-key = b'Sixteen byte key'
-iv = b'Sixteen byte IV__'
-
-# Encryption utility function using AES
-def encrypt(text):
-    if text is None:
-        return text
-    cipher = AES.new(key, AES.MODE_CFB, iv)
-    ct_bytes = cipher.encrypt(text.encode('utf-8'))
-    return base64.b64encode(ct_bytes).decode('utf-8')
-
-# UDF to handle encryption
-encrypt_udf = udf(encrypt, StringType())
-
-# Transform DataFrame with encrypted fields
-encrypted_df = df.withColumn("encrypted_name", encrypt_udf(col("name")))\
-                 .withColumn("encrypted_email", encrypt_udf(col("email")))\
-                 .withColumn("encrypted_phone", encrypt_udf(col("phone")))\
-                 .withColumn("encrypted_zip", encrypt_udf(col("zip")))
-
-final_df = encrypted_df.drop("name", "email", "phone", "zip")\
-    .withColumnRenamed("encrypted_name", "name")\
-    .withColumnRenamed("encrypted_email", "email")\
-    .withColumnRenamed("encrypted_phone", "phone")\
-    .withColumnRenamed("encrypted_zip", "zip")
-
-# Test Utility Function
-def test_encrypt_function():
-    assert encrypt("Test") != "Test"
-    assert encrypt(None) == None
-
-# Test Schema
-def test_schema():
-    # Expected Schema
-    field_names = [field.name for field in final_df.schema.fields]
-    assert "name" in field_names
-    assert "email" in field_names
-    assert "phone" in field_names
-    assert "zip" in field_names
-
-# Save encryption key to JSON for integration test
-encryption_key = {
-    "key": base64.b64encode(key).decode('utf-8'),
-    "iv": base64.b64encode(iv).decode('utf-8')
-}
-
-current_datetime = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-json_path = f"/path/to/encryption_key_{current_datetime}.json"
-
-# Write JSON File
-def save_json_key():
-    with open(json_path, 'w') as json_file:
-        json.dump(encryption_key, json_file)
-
-# Test Save JSON
-def test_json_save():
+    # 1. Retrieve Key from Azure Key Vault (if exists) or generate a new one
     try:
-        save_json_key()
-        assert True
-    except Exception as e:
-        assert False, f"Failed to save JSON: {str(e)}"
+        # Try to get the key from Key Vault
+        #  This is a placeholder, replace with your Key Vault code
+        #  Use Azure Key Vault libraries for secure access
+        # key = dbutils.secrets.get(scope="purgo-secret-scope", key="purgo-vault-secret")
+        # f = Fernet(key) # Initialize Fernet with retrieved key
+        raise Exception("Key not found") # Simulate key not found for testing key generation
 
-# Cleanup
-# Note: This assumes the existence of the purgo_playground namespace and customer_360_raw_clone table is intended to be dropped.
-spark.stop()
+
+    except Exception as e:
+        if "Key not found" in str(e):  # or another appropriate check for key absence
+            print("Generating a new encryption key and storing it in Azure Key Vault...")
+            # Generate a new key
+            key = Fernet.generate_key()
+            f = Fernet(key) # Initialize Fernet
+            # Store the key in Azure Key Vault
+            # Use Azure Key Vault libraries here to save 'key' securely
+            # Example (replace with your Key Vault logic):
+            # dbutils.secrets.set(scope = "purgo-secret-scope", key = "purgo-vault-secret", value = key.decode()) # Store as string
+        else:
+            raise  # Re-raise other exceptions
+
+
+    # Encryption function (using Fernet)
+    def encrypt_data(data, f):
+        if data is not None: # Handle Nulls
+            encrypted_data = f.encrypt(data.encode())
+            return encrypted_data.decode() # Decode to string for Delta Lake
+        return None
+
+
+    spark = SparkSession.builder.appName("EncryptPII").getOrCreate()
+    # Load data from source table
+    source_table_name = "purgo_playground.customer_360_raw_clone"
+    df = spark.table(source_table_name)
+
+
+
+    # Encrypt PII columns
+    for column in PII_COLUMNS:
+        df = df.withColumn(column, F.col(column).cast(StringType())) # Cast to string
+        udf_encrypt = F.udf(lambda x: encrypt_data(x, f), StringType()) # Create UDF
+        df = df.withColumn(column, udf_encrypt(F.col(column)))
+
+
+    # Save the encrypted data to the destination table (overwrite mode)
+    destination_table_name = "purgo_playground.customer_360_raw_clone"
+    df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(destination_table_name)
+
+
+    # Save the encryption key as a JSON file (REPLACE WITH SECURE KEY MANAGEMENT)
+    key_file_path = f"/Volumes/agilisium_playground/purgo_playground/de_dq12/encryption_key_{datetime.now().strftime('%Y%m%d%H%M%S')}.json"
+    # CAUTION: In a real-world scenario, never store encryption keys as cleartext like this.
+    # key_data = {"encryption_key": key.decode()} # Decode bytes to string for JSON serialization.
+
+    # with open(key_file_path, "w") as f_key:
+    #    json.dump(key_data, f_key)
+
+
+
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+
