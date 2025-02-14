@@ -14,9 +14,9 @@ Feature: Encrypt PII Data in Databricks PySpark
 
   Scenario Outline: Validate encryption process
     Given the column "<column_name>" is encrypted
-    When the data is retrieved from the {{customer_360_raw_clone12}} table
+    When the data is queried from the {{customer_360_raw_clone12}} table
     Then the "<column_name>" should not be in plain text
-    And the data should be decryptable using the saved encryption key
+    And the encryption key should be retrievable from the JSON file
 
     Examples:
       | column_name |
@@ -25,17 +25,20 @@ Feature: Encrypt PII Data in Databricks PySpark
       | phone       |
       | zip         |
 
-  Scenario: Handle error during encryption
-    Given the encryption process is initiated
-    When an error occurs during encryption
-    Then an error message "Encryption failed for column <column_name>" is logged
-    And the process is halted
+  Scenario: Handle missing encryption key
+    Given the encryption key is not generated
+    When the PySpark script attempts to save the encryption key
+    Then an error message "Encryption key generation failed" is displayed
 
-  Scenario Outline: Validate data format and integrity
+  Scenario: Handle encryption failure
+    Given the encryption method is AES-256
+    When the PySpark script fails to encrypt the PII columns
+    Then an error message "Encryption process failed for column <column_name>" is displayed
+
+  Scenario Outline: Validate data integrity post-encryption
     Given the column "<column_name>" is encrypted
-    When the data is retrieved from the {{customer_360_raw_clone12}} table
-    Then the "<column_name>" should match the expected encrypted format
-    And the data integrity should be maintained
+    When the data is decrypted using the encryption key
+    Then the original data should match the decrypted data
 
     Examples:
       | column_name |
@@ -45,11 +48,7 @@ Feature: Encrypt PII Data in Databricks PySpark
       | zip         |
 
   Scenario: Performance benchmark for encryption
-    Given the encryption process is initiated
+    Given the dataset size is large
     When the PySpark script is executed
-    Then the encryption process should complete within "<time_limit>" seconds
-
-    Examples:
-      | time_limit |
-      | 300        |
+    Then the encryption process should complete within the acceptable time frame of 5 minutes
 
