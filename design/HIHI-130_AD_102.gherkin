@@ -1,62 +1,55 @@
-Feature: Encrypt PII data in customer_360_raw_clone table
+Feature: Encrypt PII columns in customer_360_raw_clone table
 
   Background:
-    Given a connection to the Databricks environment
-    And the table purgo_playground.customer_360_raw_clone exists
-    And the table purgo_playground.customer_360_raw_clone12 does not exist
+    Given the source table "purgo_playground.customer_360_raw" exists
+    And the destination table "purgo_playground.customer_360_raw_clone" exists and is empty
+    And the encryption algorithm is "AES-256"
+    And the key management system is "Azure Key Vault"
+    And the data types of PII columns are:
+      | Column | Data Type |
+      |---|---|
+      | name | string |
+      | email | string |
+      | phone | string |
+      | zip | string |
 
-  Scenario: Prepare the environment
-    Given I drop the table purgo_playground.customer_360_raw_clone12 if it exists
-    When I create a replica of purgo_playground.customer_360_raw as purgo_playground.customer_360_raw_clone12
-    Then the table purgo_playground.customer_360_raw_clone12 should exist with the same schema as purgo_playground.customer_360_raw
 
-  Scenario Outline: Encrypt PII data
-    Given I connect to the purgo_playground.customer_360_raw_clone12 table
-    When I encrypt the "<column>" column using AES-256 encryption
-    Then the "<column>" column should be encrypted
-    And an encryption key should be generated and saved as JSON
-    And the file should be named encryption_key_<current_datetime>.json
-    And the file should be stored in /Volumes/agilisium_playground/purgo_playground/de_dq12
+  Scenario: Encrypt PII columns and save encryption key
+    Given the following data exists in "purgo_playground.customer_360_raw":
+      | id | name | email | phone | zip |
+      | 1 | John Doe | john.doe@example.com | 123-456-7890 | 12345 |
+      | 2 | Jane Doe | jane.doe@example.com | 987-654-3210 | 67890 |
 
-    Examples:
-      | column  |
-      | name    |
-      | email   |
-      | phone   |
-      | zip     |
+    When the PySpark script is executed to encrypt "name", "email", "phone", and "zip" columns
+    And the encryption key is saved as a JSON file in "/Volumes/agilisium_playground/purgo_playground/de_dq12" with filename "encryption_key_<current_datetime>.json"
+    And the encrypted data is loaded into "purgo_playground.customer_360_raw_clone"
+    Then the "purgo_playground.customer_360_raw_clone" table should contain the following encrypted data:
+      | id | name | email | phone | zip |
+      | 1 | <encrypted_name_1> | <encrypted_email_1> | <encrypted_phone_1> | <encrypted_zip_1> |
+      | 2 | <encrypted_name_2> | <encrypted_email_2> | <encrypted_phone_2> | <encrypted_zip_2> |
+    And the encryption key file should exist in the specified location with the correct format
 
-  Scenario: Validate PII encryption process
-    Given I connect to the purgo_playground.customer_360_raw_clone12 table
-    When I validate the encryption key has been saved securely
-    Then the encryption key file should exist in the specified volume location
-    And the file should follow the JSON format with structure {"key": "<encrypted_key_value>"}
-
-  Scenario: Handle missing columns during encryption
-    Given I connect to the purgo_playground.customer_360_raw_clone12 table
-    When I attempt to encrypt a non-existent column "<column>"
-    Then an error should be thrown
-    And the error message should read "Column <column> does not exist"
-
-    Examples:
-      | column     |
-      | salary     |
-      | birth_date |
-
-  Scenario: Error handling during encryption failure
-    Given I simulate a failure in the encryption process
-    When the encryption process fails
-    Then an error should be logged
-    And the error message should be "Encryption failed due to system error"
-
-  Scenario: Validate data integrity post-encryption
-    Given I connect to the purgo_playground.customer_360_raw_clone12 table
-    When I retrieve encrypted data from the "<column>" column
-    Then the data should be unreadable without decryption
+  Scenario Outline: Handle invalid input data types
+    Given the following data exists in "purgo_playground.customer_360_raw":
+      | id | name | email | phone | zip |
+      | <id> | <name> | <email> | <phone> | <zip> |
+    When the PySpark script is executed to encrypt "name", "email", "phone", and "zip" columns
+    Then the script should raise an error with message "<error_message>"
 
     Examples:
-      | column  |
-      | name    |
-      | email   |
-      | phone   |
-      | zip     |
+      | id | name | email | phone | zip | error_message |
+      | 3 | 123 | john.doe@example.com | 123-456-7890 | 12345 | "Invalid data type for column 'name'. Expected string, but got integer." |
+      | 4 | John Doe | john.doe@example.com | 123-456-7890 | 123.45 | "Invalid data type for column 'zip'. Expected string, but got float." |
+
+
+  Scenario: Handle missing key vault credentials
+    Given the Azure Key Vault credentials are not provided
+    When the PySpark script is executed to encrypt "name", "email", "phone", and "zip" columns
+    Then the script should raise an error with message "Missing Azure Key Vault credentials."
+
+  Scenario: Handle key vault access denied
+    Given the provided Azure Key Vault credentials are invalid
+    When the PySpark script is executed to encrypt "name", "email", "phone", and "zip" columns
+    Then the script should raise an error with message "Access denied to Azure Key Vault."
+
 
