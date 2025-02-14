@@ -1,52 +1,50 @@
-Feature: Data Quality Checks for d_product Table
-  In order to ensure data integrity before moving to production
-  As a data quality engineer
-  I want to perform mandatory data quality checks on the d_product table
+Feature: Data Quality Check on d_product Table
 
-Background:
-  Given the d_product table in purgo_playground catalog
+  Background:
+    Given a connection to the purgo_playground database
+    And the table "d_product" with columns "prod_id", "item_nbr", "sellable_qty", "prod_exp_dt" exists
 
-Scenario: Verify item_nbr is not null
-  When executing SQL to check for nulls in item_nbr column
-  Then the count of records with null item_nbr should be retrieved
-  And 5 sample records with null item_nbr should be displayed
+  Scenario: Validate 'item_nbr' is not null
+    Given I retrieve data from the table "d_product"
+    When I check for records where 'item_nbr' is null
+    Then I should get the count of such records
+    And I should display 5 sample records with 'item_nbr' null
+    And log the message "Found records with null 'item_nbr'"
 
-Scenario: Verify sellable_qty is not null
-  When executing SQL to check for nulls in sellable_qty column
-  Then the count of records with null sellable_qty should be retrieved
-  And 5 sample records with null sellable_qty should be displayed
+  Scenario: Validate 'sellable_qty' is not null
+    Given I retrieve data from the table "d_product"
+    When I check for records where 'sellable_qty' is null
+    Then I should get the count of such records
+    And I should display 5 sample records with 'sellable_qty' null
+    And log the message "Found records with null 'sellable_qty'"
 
-Scenario: Validate prod_exp_dt format
-  When executing SQL to check prod_exp_dt format
-  Then the count of records with incorrect prod_exp_dt format should be retrieved
-  And 5 sample records with incorrect prod_exp_dt format should be displayed
+  Scenario: Validate 'prod_exp_dt' format is yyyymmdd
+    Given I retrieve data from the table "d_product"
+    When I check records where 'prod_exp_dt' is not in yyyymmdd format
+    Then I should get the count of such records
+    And I should display 5 sample records with invalid 'prod_exp_dt'
+    And log the message "Found records with invalid 'prod_exp_dt' format"
 
-Scenario Outline: Validate non-null and incorrect format conditions
-  Given column <ColumnName> in d_product table
-  When executing SQL to check for <Condition>
-  Then the count of records meeting the <Condition> should be retrieved
-  And 5 sample records meeting the <Condition> should be displayed
+  Scenario Outline: Validate 'item_nbr' and 'sellable_qty' are not null
+    Given I retrieve data from the table "<table_name>"
+    When I check for records where <column_name> is null
+    Then I should get the count of such records
+    And I should display 5 sample records with <column_name> null
+    And log the message "Found records with null <column_name>"
 
-  Examples:
-    | ColumnName    | Condition                                          |
-    | item_nbr      | null                                               |
-    | sellable_qty  | null                                               |
-    | prod_exp_dt   | not in 'yyyyMMdd' format                           |
+    Examples:
+      | table_name | column_name   |
+      | d_product  | item_nbr      |
+      | d_product  | sellable_qty  |
 
-Technical Details:
-  - Data Types:
-    * item_nbr: VARCHAR
-    * sellable_qty: INTEGER
-    * prod_exp_dt: STRING (YYYYMMDD)
-  - Validation Rules:
-    * item_nbr and sellable_qty must not be NULL
-    * prod_exp_dt must adhere to YYYYMMDD format 
-  - Error Conditions:
-    * If item_nbr is NULL: "Item Number is missing."
-    * If sellable_qty is NULL: "Sellable Quantity is missing."
-    * If prod_exp_dt is not in YYYYMMDD: "Invalid product expiry date format."
+  Scenario Outline: Validate 'prod_exp_dt' format
+    Given I retrieve data from the table "<table_name>"
+    When I check records where 'prod_exp_dt' is not in <format>
+    Then I should get the count of such records
+    And I should display 5 sample records with invalid 'prod_exp_dt'
+    And log the message "Found records with invalid 'prod_exp_dt' format"
 
-Notes for Implementation:
-  - Ensure SQL queries align with the defined technical specifications.
-  - Implement automated alerts for any failures in the data quality checks.
-  - Schedule regular execution of these checks to align with the data processing cycle.
+    Examples:
+      | table_name | format  |
+      | d_product  | yyyymmdd|
+
