@@ -1,61 +1,48 @@
--- Databricks SQL Test Code for Data Quality Checks on d_product Table
+/* Test Code for Data Quality Checks on d_product Table */
 
--- /* =============================================================== */
--- /* Setup Section: */
--- /* Ensure to use the appropriate catalog and schema */
--- /* =============================================================== */
+/* Framework and Structure */
+/* The following code uses Databricks SQL syntax to perform data quality checks */
 
-USE CATALOG purgo_playground;
-USE SCHEMA purgo_playground;
+/* Data Type Testing */
+/* Validate NULL values and string format for specified columns */
 
--- /* =============================================================== */
--- /* Test: Verify item_nbr is not null */
--- /* =============================================================== */
-
--- Check for records where item_nbr is null
-WITH null_item_nbr AS (
-  SELECT * FROM d_product WHERE item_nbr IS NULL
-)
+-- Scenario: Verify item_nbr is not null
 SELECT COUNT(*) AS null_item_nbr_count
-FROM null_item_nbr;
+FROM purgo_playground.d_product
+WHERE item_nbr IS NULL;
 
--- Retrieve 5 sample records where item_nbr is null
-SELECT * FROM null_item_nbr LIMIT 5;
+-- Display 5 sample records with null item_nbr
+SELECT * 
+FROM purgo_playground.d_product
+WHERE item_nbr IS NULL
+LIMIT 5;
 
--- /* =============================================================== */
--- /* Test: Verify sellable_qty is not null */
--- /* =============================================================== */
-
--- Check for records where sellable_qty is null
-WITH null_sellable_qty AS (
-  SELECT * FROM d_product WHERE sellable_qty IS NULL
-)
+-- Scenario: Verify sellable_qty is not null
 SELECT COUNT(*) AS null_sellable_qty_count
-FROM null_sellable_qty;
+FROM purgo_playground.d_product
+WHERE sellable_qty IS NULL;
 
--- Retrieve 5 sample records where sellable_qty is null
-SELECT * FROM null_sellable_qty LIMIT 5;
+-- Display 5 sample records with null sellable_qty
+SELECT * 
+FROM purgo_playground.d_product
+WHERE sellable_qty IS NULL
+LIMIT 5;
 
--- /* =============================================================== */
--- /* Test: Validate prod_exp_dt format (YYYYMMDD) */
--- /* =============================================================== */
-
--- Check for records where prod_exp_dt is not in the YYYYMMDD format
-WITH invalid_prod_exp_dt AS (
-  SELECT *
-  FROM d_product 
-  WHERE NOT (prod_exp_dt RLIKE '^[0-9]{8}$')
-)
+-- Scenario: Validate prod_exp_dt format (should be YYYYMMDD)
 SELECT COUNT(*) AS invalid_prod_exp_dt_count
-FROM invalid_prod_exp_dt;
+FROM purgo_playground.d_product
+WHERE NOT prod_exp_dt RLIKE '^[0-9]{8}$';
 
--- Retrieve 5 sample records where prod_exp_dt is not in the YYYYMMDD format
-SELECT * FROM invalid_prod_exp_dt LIMIT 5;
+-- Display 5 sample records with incorrect prod_exp_dt format
+SELECT * 
+FROM purgo_playground.d_product
+WHERE NOT prod_exp_dt RLIKE '^[0-9]{8}$'
+LIMIT 5;
 
--- /* =============================================================== */
--- /* Cleanup Section: */
--- /* Optional: Add any cleanup operations here if needed */
--- /* =============================================================== */
+/* Databricks-Specific Features */
+/* As the checks involve basic quality validations, Delta Lake operations, specific window functions, and analytics features are not required here */
 
--- Cleanup can involve deletion of temporary tables or restoration of original state
-
+/* Code Structure and Documentation */
+-- This block of SQL code is designed to perform data quality checks
+-- It checks for null values in crucial columns and validates date format
+-- Each query block performs specific checks and displays results accordingly
