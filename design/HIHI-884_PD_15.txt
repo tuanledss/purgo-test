@@ -1,0 +1,61 @@
+  As a Business Analyst
+  I want to perform data quality checks on the d_product table
+  So that I can ensure the quality of the data processed in the table
+
+  Background:
+    Given the d_product table exists in the purgo_playground schema
+    And the table has the following columns: prod_id, item_nbr, unit_cost, prod_exp_dt, cost_per_pkg, plant_add, plant_loc_cd, prod_line, stock_type, pre_prod_days, sellable_qty, prod_ordr_tracker_nbr, max_order_qty, flag_active, crt_dt, updt_dt, src_sys_cd, hfm_entity
+
+  Scenario: Check for null values in item_nbr column
+    When I run the query to count the number of records where item_nbr is null
+    Then the result should be 0
+
+  Scenario: Display sample records with null item_nbr
+    When I run the query to display 5 sample records where item_nbr is null
+    Then the result should be an empty table
+
+  Scenario: Check for null values in sellable_qty column
+    When I run the query to count the number of records where sellable_qty is null
+    Then the result should be 0
+
+  Scenario: Display sample records with null sellable_qty
+    When I run the query to display 5 sample records where sellable_qty is null
+    Then the result should be an empty table
+
+  Scenario: Check for invalid prod_exp_dt format
+    When I run the query to count the number of records where prod_exp_dt is not in the format yyyymmdd
+    Then the result should be 0
+
+  Scenario: Display sample records with invalid prod_exp_dt format
+    When I run the query to display 5 sample records where prod_exp_dt is not in the format yyyymmdd
+    Then the result should be an empty table
+
+  Scenario Outline: Data Quality Check on d_product Table
+    When I run the query to count the number of records where <column_name> is null
+    Then the result should be 0
+    Examples:
+      | column_name  |
+      | item_nbr     |
+      | sellable_qty |
+
+  Scenario Outline: Display Sample Records with Null Values
+    When I run the query to display 5 sample records where <column_name> is null
+    Then the result should be an empty table
+    Examples:
+      | column_name  |
+      | item_nbr     |
+      | sellable_qty |
+
+  Scenario Outline: Check for Invalid prod_exp_dt Format
+    When I run the query to count the number of records where prod_exp_dt is not in the format <format>
+    Then the result should be 0
+    Examples:
+      | format    |
+      | yyyymmdd  |
+
+  Scenario Outline: Display Sample Records with Invalid prod_exp_dt Format
+    When I run the query to display 5 sample records where prod_exp_dt is not in the format <format>
+    Then the result should be an empty table
+    Examples:
+      | format    |
+      | yyyymmdd  |
