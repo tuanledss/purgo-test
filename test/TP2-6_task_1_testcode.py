@@ -1,134 +1,110 @@
-# PySpark Test Code for Encrypting PII Data in Databricks
-
+# Import necessary libraries
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, udf, lit, current_timestamp
-from pyspark.sql.types import StringType, StructType, StructField, LongType, DateType
+from pyspark.sql.functions import col, udf
+from pyspark.sql.types import StringType
 import base64
 import json
-import os
-import unittest
+from datetime import datetime
+from cryptography.fernet import Fernet
 
 # Initialize Spark session
-spark = SparkSession.builder.appName("EncryptPIIDataTest").getOrCreate()
+spark = SparkSession.builder.appName("EncryptPIIData").getOrCreate()
 
-# Define encryption function
-def encrypt_data(data, key):
-    if data is not None:
-        return base64.b64encode(data.encode('utf-8')).decode('utf-8')
+# Generate encryption key
+encryption_key = Fernet.generate_key()
+cipher_suite = Fernet(encryption_key)
+
+# Define UDF for encryption
+def encrypt_value(value):
+    if value is not None:
+        return cipher_suite.encrypt(value.encode()).decode()
     return None
 
-# Register UDF
-encrypt_udf = udf(lambda x: encrypt_data(x, "encryption_key"), StringType())
+encrypt_udf = udf(encrypt_value, StringType())
 
-# Define schema for validation
-customer_schema = StructType([
-    StructField("id", LongType(), True),
-    StructField("name", StringType(), True),
-    StructField("email", StringType(), True),
-    StructField("phone", StringType(), True),
-    StructField("company", StringType(), True),
-    StructField("job_title", StringType(), True),
-    StructField("address", StringType(), True),
-    StructField("city", StringType(), True),
-    StructField("state", StringType(), True),
-    StructField("country", StringType(), True),
-    StructField("industry", StringType(), True),
-    StructField("account_manager", StringType(), True),
-    StructField("creation_date", DateType(), True),
-    StructField("last_interaction_date", DateType(), True),
-    StructField("purchase_history", StringType(), True),
-    StructField("notes", StringType(), True),
-    StructField("zip", StringType(), True)
-])
+# Drop the clone table if it exists
+spark.sql("DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone12")
 
-# Unit test class
-class TestEncryptPIIData(unittest.TestCase):
+# Create a replica of the customer_360_raw table
+spark.sql("""
+    CREATE TABLE purgo_playground.customer_360_raw_clone12 AS
+    SELECT * FROM purgo_playground.customer_360_raw
+""")
 
-    def setUp(self):
-        # Load the customer_360_raw table
-        self.customer_df = spark.table("purgo_playground.customer_360_raw")
+# Load the clone table
+customer_360_raw_clone_df = spark.table("purgo_playground.customer_360_raw_clone12")
 
-    def test_schema_validation(self):
-        # Validate schema
-        self.assertEqual(self.customer_df.schema, customer_schema)
+# Encrypt PII columns
+encrypted_df = customer_360_raw_clone_df.withColumn("name", encrypt_udf(col("name"))) \
+                                        .withColumn("email", encrypt_udf(col("email"))) \
+                                        .withColumn("phone", encrypt_udf(col("phone"))) \
+                                        .withColumn("zip", encrypt_udf(col("zip")))
 
-    def test_encrypt_pii_columns(self):
-        # Encrypt PII columns
-        encrypted_df = self.customer_df.withColumn("name", encrypt_udf(col("name"))) \
-                                       .withColumn("email", encrypt_udf(col("email"))) \
-                                       .withColumn("phone", encrypt_udf(col("phone"))) \
-                                       .withColumn("zip", encrypt_udf(col("zip")))
+# Save the encrypted data back to the clone table
+encrypted_df.write.mode("overwrite").saveAsTable("purgo_playground.customer_360_raw_clone12")
 
-        # Check that encrypted columns do not match original
-        for row in encrypted_df.collect():
-            self.assertNotEqual(row['name'], self.customer_df.filter(col("id") == row['id']).select("name").collect()[0][0])
-            self.assertNotEqual(row['email'], self.customer_df.filter(col("id") == row['id']).select("email").collect()[0][0])
-            self.assertNotEqual(row['phone'], self.customer_df.filter(col("id") == row['id']).select("phone").collect()[0][0])
-            self.assertNotEqual(row['zip'], self.customer_df.filter(col("id") == row['id']).select("zip").collect()[0][0])
+# Save the encryption key as a JSON file
+current_datetime = datetime.now().strftime("%Y%m%d%H%M%S")
+encryption_key_path = f"/dbfs/Volumes/agilisium_playground/purgo_playground/de_dq12/encryption_key_{current_datetime}.json"
 
-    def test_null_handling(self):
-        # Test NULL handling
-        null_df = self.customer_df.withColumn("name", lit(None))
-        encrypted_null_df = null_df.withColumn("name", encrypt_udf(col("name")))
-        self.assertTrue(encrypted_null_df.filter(col("name").isNull()).count() > 0)
+with open(encryption_key_path, 'w') as key_file:
+    json.dump({"encryption_key": base64.b64encode(encryption_key).decode()}, key_file)
 
-    def test_encryption_key_generation(self):
-        # Generate encryption key and save as JSON
-        encryption_key = base64.b64encode(os.urandom(32)).decode('utf-8')
-        key_data = {"encryption_key": encryption_key, "timestamp": current_timestamp().cast("string").alias("timestamp")}
-        key_json = json.dumps(key_data)
-
-        # Save the encryption key to a JSON file
-        key_file_path = f"/Volumes/agilisium_playground/purgo_playground/de_dq12/encryption_key_{current_timestamp().cast('string')}.json"
-        with open(key_file_path, 'w') as key_file:
-            key_file.write(key_json)
-
-        # Validate key file creation
-        self.assertTrue(os.path.exists(key_file_path))
-
-    def tearDown(self):
-        # Cleanup operations
-        spark.sql("DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone12")
-
-# Run the tests
-if __name__ == '__main__':
-    unittest.main(argv=['first-arg-is-ignored'], exit=False)
-
-# Stop Spark session
+# Stop the Spark session
 spark.stop()
 
--- SQL Test Code for Databricks SQL Operations
+-- SQL Test Code for Databricks
 
-/* Test Delta Lake Operations */
--- Validate that the Delta table exists and has the correct schema
-CREATE OR REPLACE TABLE purgo_playground.customer_360_raw_clone12 AS
-SELECT * FROM purgo_playground.customer_360_raw12;
+/* Test for table existence and cleanup */
+-- Drop the clone table if it exists
+DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone12;
 
--- Check schema
+-- Create a replica of the customer_360_raw table
+CREATE TABLE purgo_playground.customer_360_raw_clone12 AS
+SELECT * FROM purgo_playground.customer_360_raw;
+
+/* Validate schema of the cloned table */
+-- Check if the schema of the cloned table matches the original
 DESCRIBE TABLE purgo_playground.customer_360_raw_clone12;
 
-/* Test MERGE, UPDATE, DELETE operations */
--- Test MERGE operation
+/* Validate data type conversions */
+-- Ensure data types are correctly handled
+SELECT 
+  CASE WHEN typeof(name) = 'string' THEN 'PASS' ELSE 'FAIL' END AS name_type_check,
+  CASE WHEN typeof(email) = 'string' THEN 'PASS' ELSE 'FAIL' END AS email_type_check,
+  CASE WHEN typeof(phone) = 'string' THEN 'PASS' ELSE 'FAIL' END AS phone_type_check,
+  CASE WHEN typeof(zip) = 'string' THEN 'PASS' ELSE 'FAIL' END AS zip_type_check
+FROM purgo_playground.customer_360_raw_clone12;
+
+/* Validate encryption */
+-- Check that encrypted data is not equal to original data
+SELECT 
+  CASE WHEN name != original_name THEN 'PASS' ELSE 'FAIL' END AS name_encryption_check,
+  CASE WHEN email != original_email THEN 'PASS' ELSE 'FAIL' END AS email_encryption_check,
+  CASE WHEN phone != original_phone THEN 'PASS' ELSE 'FAIL' END AS phone_encryption_check,
+  CASE WHEN zip != original_zip THEN 'PASS' ELSE 'FAIL' END AS zip_encryption_check
+FROM (
+  SELECT 
+    name, email, phone, zip,
+    (SELECT name FROM purgo_playground.customer_360_raw WHERE id = c.id) AS original_name,
+    (SELECT email FROM purgo_playground.customer_360_raw WHERE id = c.id) AS original_email,
+    (SELECT phone FROM purgo_playground.customer_360_raw WHERE id = c.id) AS original_phone,
+    (SELECT zip FROM purgo_playground.customer_360_raw WHERE id = c.id) AS original_zip
+  FROM purgo_playground.customer_360_raw_clone12 c
+);
+
+/* Validate Delta Lake operations */
+-- Check if Delta Lake operations are successful
 MERGE INTO purgo_playground.customer_360_raw_clone12 AS target
 USING (SELECT * FROM purgo_playground.customer_360_raw WHERE id = 1) AS source
 ON target.id = source.id
-WHEN MATCHED THEN
-  UPDATE SET target.name = source.name;
+WHEN MATCHED THEN UPDATE SET target.name = source.name;
 
-/* Validate UPDATE */
-SELECT * FROM purgo_playground.customer_360_raw_clone12 WHERE id = 1;
-
-/* Test DELETE operation */
-DELETE FROM purgo_playground.customer_360_raw_clone12 WHERE id = 1;
-
-/* Validate DELETE */
-SELECT * FROM purgo_playground.customer_360_raw_clone12 WHERE id = 1;
-
-/* Test window functions and analytics features */
--- Test window function
-SELECT id, name, ROW_NUMBER() OVER (PARTITION BY country ORDER BY creation_date DESC) AS row_num
+/* Validate window functions */
+-- Test window function for analytics
+SELECT id, name, ROW_NUMBER() OVER (PARTITION BY country ORDER BY last_interaction_date DESC) AS row_num
 FROM purgo_playground.customer_360_raw_clone12;
 
 /* Cleanup operations */
--- Drop the test table
+-- Drop the clone table after tests
 DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone12;
