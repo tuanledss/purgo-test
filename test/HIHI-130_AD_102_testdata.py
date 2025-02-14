@@ -1,64 +1,75 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, expr, udf
-from pyspark.sql.types import StringType
-import json
-from datetime import datetime
-from cryptography.fernet import Fernet
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+import datetime
 
-# Create Spark session
-spark = SparkSession.builder \
-    .appName("Databricks PII Encryption") \
-    .getOrCreate()
+spark = SparkSession.builder.appName("TestDataGeneration").getOrCreate()
 
-# Drop the clone table if exists
-spark.sql("DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone12")
+# Define schema with Databricks data types
+schema = StructType([
+    StructField("id", BigintType(), False),
+    StructField("name", StringType(), True),
+    StructField("email", StringType(), True),
+    StructField("phone", StringType(), True),
+    StructField("company", StringType(), True),
+    StructField("job_title", StringType(), True),
+    StructField("address", StringType(), True),
+    StructField("city", StringType(), True),
+    StructField("state", StringType(), True),
+    StructField("country", StringType(), True),
+    StructField("industry", StringType(), True),
+    StructField("account_manager", StringType(), True),
+    StructField("creation_date", DateType(), True),
+    StructField("last_interaction_date", DateType(), True),
+    StructField("purchase_history", StringType(), True), # Example: JSON string, ArrayType, etc.
+    StructField("notes", StringType(), True),
+    StructField("zip", StringType(), True)
+])
 
-# Create a replica of the original table
-spark.sql("CREATE TABLE purgo_playground.customer_360_raw_clone12 AS SELECT * FROM purgo_playground.customer_360_raw")
-
-# Key generation and encryption logic
-encryption_key = Fernet.generate_key()
-cipher = Fernet(encryption_key)
-
-def encrypt(data):
-    if data is None:
-        return None
-    return cipher.encrypt(data.encode()).decode()
-
-encrypt_udf = udf(encrypt, StringType())
-
-# Encrypt specified columns
-columns_to_encrypt = ["name", "email", "phone", "zip"]
-
-df = spark.table("purgo_playground.customer_360_raw_clone12")
-for column in columns_to_encrypt:
-    df = df.withColumn(column, encrypt_udf(col(column)))
-
-# Write back the encrypted data
-df.write.mode('overwrite').saveAsTable("purgo_playground.customer_360_raw_clone12")
-
-# Save the encryption key
-encryption_key_data = {"key": encryption_key.decode()}
-current_datetime = datetime.now().strftime("%Y%m%d%H%M%S")
-encryption_key_file = f"/dbfs/Volumes/agilisium_playground/purgo_playground/de_dq12/encryption_key_{current_datetime}.json"
-
-with open(encryption_key_file, 'w') as f:
-    json.dump(encryption_key_data, f)
-
-# Generate comprehensive test data for the replica table
-test_data = [
-    (1, "Alice", "alice@example.com", "+123456789", "12345", "ACME Corp", "Engineer", "123 St", "CityX", "StateX", "CountryX", "Tech", "John Doe", "2024-01-01", "2024-01-15", "Purchase1", "Note1", "12345", 0),
-    # Happy path, valid scenario
-    (2, "Bob", "bob@example.com", "+987654321", "54321", "Globex", "Manager", "456 Av", "CityY", "StateY", "CountryY", "Finance", "Jane Smith", "2024-02-01", "2024-02-20", "Purchase2", "Note2", "54321", 1),
-    # Edge case, long name
-    (3, "Carolyn Elizabeth Johnson-Smith", "carol@example.com", "+198765432", "67890", "Initech", "Researcher", "789 Blvd", "CityZ", "StateZ", "CountryZ", "Health", "Richard Roe", "2024-03-01", "2024-03-30", "Purchase3", "Note3", "67890", 0),
-    # Error case, invalid phone number
-    (4, "Dave", "dave@example.com", "INVALID_PHONE", "98765", "Hooli", "Director", "101 Rd", "CityW", "StateW", "CountryW", "Education", "Mary Major", "2024-04-01", "2024-04-25", "Purchase4", "Note4", "98765", 1),
-    # NULL handling, missing email
-    (5, "Eve", None, "+1122334455", "11223", "Massive Dynamic", "Intern", "202 Ln", "CityV", "StateV", "CountryV", "Retail", "Ellen Ripley", "2024-05-01", "2024-05-15", "Purchase5", "Note5", "11223", 0),
-    # Special characters and multi-byte characters in name
-    (6, "Chírø Nishikáðó", "hiro@example.com", "+5566778899", "99887", "Wonka Industries", "Consultant", "303 St", "CityU", "StateU", "CountryU", "Travel", "Will Riker", "2024-06-01", "2024-06-10", "Purchase6", "Note6", "99887", 1)
+# Happy Path
+data_happy_path = [
+    (1, "John Doe", "john.doe@example.com", "123-456-7890", "Acme Corp", "Software Engineer", "123 Main St", "Anytown", "CA", "USA", "Technology", "Alice Smith", datetime.date(2023, 1, 15), datetime.date(2024, 3, 10), "[{\"product\": \"A\", \"amount\": 100}, {\"product\": \"B\", \"amount\": 200}]", "Regular customer", "90210"),
+    (2, "Jane Doe", "jane.doe@example.com", "+1-987-654-3210", "Globex Corp", "Data Scientist", "456 Oak Ave", "Springfield", "IL", "USA", "Finance", "Bob Johnson", datetime.date(2023, 5, 20), datetime.date(2024, 3, 15), "[{\"product\": \"C\", \"amount\": 150}]", "New customer", "60601"),
+    # ... more happy path records (up to 20-30 total)
 ]
 
-test_df = spark.createDataFrame(test_data, schema=df.schema)
-test_df.write.mode('append').saveAsTable("purgo_playground.customer_360_raw_clone12")
+# Edge Cases
+data_edge_cases = [
+    (3, "A very long name that exceeds the typical length", "valid.email@example.com", "1-111-111-1111", "Edge Case Corp", "Test Engineer", "1 Edge Case Ln", "Edge City", "ZZ", "USA", "Testing", "Charles Brown", datetime.date(2000, 1, 1), datetime.date(2024, 3, 20), "[]", "First customer", "00000"),  # Long name, earliest date
+    (4, "User4", "user4@example.com", "555-123-4567", "", "", "", "", "", "", "", "", datetime.date(2024, 3, 21), datetime.date(9999, 12, 31), "{}", "", "99999"), # Empty fields, latest date
+    # ...more edge case records
+]
+
+# Error Cases (using valid data types, representing invalid input scenarios)
+data_error_cases = [
+    (5, "", "invalid_email", "123", "Invalid Input Corp", "Error Creator", "Invalid Address", "Error City", "", "Invalid Country", "Invalid Industry", "David Lee", None, None, None, "Invalid Notes", "1234"), # Invalid email, phone, zip, potentially other fields
+    # ... more error case records
+]
+
+# NULL handling scenarios
+data_null_handling = [
+    (6, None, "user_null@example.com", None, None, None, None, None, None, None, None, None, None, None, None, None, None), # All nullable fields are NULL
+    (7, "User with some NULLs", "somenulls@example.com", "555-555-5555", None, "Some Job", None, None, None, None, None, None, datetime.date(2023, 12, 31), None, None, None, "55555"), # Some fields NULL
+    #... more NULL handling records
+]
+
+# Special characters and multi-byte characters
+data_special_chars = [
+    (8, "User with special chars: !@#$%^&*()", "special@chars.com", "555-555-5555", "Special Chars Inc.", "Special Char Specialist", "1 Special Char St.", "Special City", "SC", "USA", "Special Char Handling", "Eve Jackson", datetime.date(2024, 1, 1), datetime.date(2024, 3, 21), "[{\"product\":\"Special Char\",\"amount\": 50}]", "Special character notes", "12345"),
+    (9, "User with multi-byte chars: éàçüö", "multibyte@example.com",  "555-555-5555", "Multi-byte Corp",  "Multi-byte Expert",  "1 Multi-byte Way", "Multi-byte City", "MB",  "USA", "Multi-byte Industry", "Frank White", datetime.date(2024, 2, 15), datetime.date(2024, 3, 20), "[]", "Multi-byte notes", "54321"),
+    # ...more special char records
+
+]
+
+# Combine all test data
+data = data_happy_path + data_edge_cases + data_error_cases + data_null_handling + data_special_chars
+
+# Create DataFrame
+df = spark.createDataFrame(data, schema)
+
+# Display the DataFrame (for verification)
+df.show()
+
+# Further processing (e.g., writing to Delta table, generating SQL INSERT statements)
+# ...
+
