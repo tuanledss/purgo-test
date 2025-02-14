@@ -1,61 +1,42 @@
-/* 
-  Data Quality Check SQL Logic for d_product Table 
-  This SQL script performs mandatory data quality checks on the d_product table,
-  ensuring critical fields are not null and date formats are validated.
-  Applicable to Databricks SQL environment.
-  Place any environment-specific configurations above this comment block.
-*/
+-- Data Quality Checks for d_product Table
+-- SQL Tests for Null Checks and Date Format Validity
 
-/* 
-  Checking records with NULL 'item_nbr'
-  - Retrieve the count of records where 'item_nbr' is NULL
-  - Display 5 sample records with NULL 'item_nbr'
-*/
--- Count of records with NULL 'item_nbr'
+-- Setup Phase
+-- Loading the Databricks SQL table configurations
+-- Ensure the table d_product is properly configured in the 'purgo_playground' catalog.
+
+-- Scenario: Verify item_nbr is not null
+-- SQL to count records where item_nbr is null
 SELECT COUNT(*) AS null_item_nbr_count
 FROM purgo_playground.d_product
 WHERE item_nbr IS NULL;
 
--- Sample records with NULL 'item_nbr'
+-- Display 5 sample records with null item_nbr
 SELECT *
 FROM purgo_playground.d_product
 WHERE item_nbr IS NULL
 LIMIT 5;
 
-/*
-  Checking records with NULL 'sellable_qty'
-  - Retrieve the count of records where 'sellable_qty' is NULL
-  - Display 5 sample records with NULL 'sellable_qty'
-*/
--- Count of records with NULL 'sellable_qty'
+-- Scenario: Verify sellable_qty is not null
+-- SQL to count records where sellable_qty is null
 SELECT COUNT(*) AS null_sellable_qty_count
 FROM purgo_playground.d_product
 WHERE sellable_qty IS NULL;
 
--- Sample records with NULL 'sellable_qty'
+-- Display 5 sample records with null sellable_qty
 SELECT *
 FROM purgo_playground.d_product
 WHERE sellable_qty IS NULL
 LIMIT 5;
 
-/*
-  Validating 'prod_exp_dt' format
-  - Retrieve the count of records where 'prod_exp_dt' is not in 'yyyyMMdd' format
-  - Display 5 sample records with incorrect 'prod_exp_dt' format
-*/
--- Count of records with incorrect 'prod_exp_dt' format
-SELECT COUNT(*) AS incorrect_prod_exp_dt_format_count
+-- Scenario: Validate prod_exp_dt format
+-- SQL to count records where prod_exp_dt is not in 'yyyyMMdd' format
+SELECT COUNT(*) AS invalid_prod_exp_dt_count
 FROM purgo_playground.d_product
 WHERE NOT prod_exp_dt RLIKE '^[0-9]{8}$';
 
--- Sample records with incorrect 'prod_exp_dt' format
+-- Display 5 sample records with incorrect prod_exp_dt format
 SELECT *
 FROM purgo_playground.d_product
 WHERE NOT prod_exp_dt RLIKE '^[0-9]{8}$'
 LIMIT 5;
-
-/*
-  Cleanup operations
-  Include this section if any temporary tables/views or resources were used
-  Ensure proper disposal to maintain environment integrity
-*/
