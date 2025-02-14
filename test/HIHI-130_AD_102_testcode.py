@@ -1,65 +1,104 @@
-# PySpark Tests
-from pyspark.sql import SparkSession, functions as F
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType
+# Databricks PySpark script to encrypt PII columns and save the encryption key
 
-# Initialize Spark session
-spark = SparkSession.builder.appName("Databricks Test").getOrCreate()
+# Library installation (if necessary)
+# %pip install simple-crypt
 
-# Define DataFrame schema
-schema = StructType([
-    StructField("id", IntegerType(), True),
-    StructField("name", StringType(), True),
-    StructField("email", StringType(), True),
-    StructField("phone", StringType(), True),
-    StructField("zip", StringType(), True)
-])
+import os
+import json
+from datetime import datetime
 
-# Sample data for testing
-data = [
-    (1, "John Doe", "john.doe@example.com", "1234567890", "10101"),
-    (2, None, None, None, None),  # Handling NULLs
-    (3, "Jane Doe", "jane.doe@example.com", "0987654321", "20205")
-]
+from simplecrypt import encrypt, decrypt  # Replace with your chosen encryption library
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, lit
+from pyspark.sql.types import StringType
 
-# Create DataFrame
-df = spark.createDataFrame(data, schema)
+# Configuration (replace with your actual values)
+# Encryption Algorithm: AES-256 (using simple-crypt as an example)
+# Key Management System: Azure Key Vault (example usage shown below - adapt as needed)
+# Source Table: purgo_playground.customer_360_raw_clone
+# Destination Table: purgo_playground.customer_360_raw_clone (overwriting for this example)
+# JSON Location: /Volumes/agilisium_playground/purgo_playground/de_dq12
+PII_COLUMNS = ["name", "email", "phone", "zip"]
+KEY_VAULT_NAME = "your-keyvault-name" # Replace with actual Key Vault Name if using Azure Key Vault
+KEY_NAME = "your-key-name"  # Replace with actual key name if using Azure Key Vault
+SECRET_NAME = "your_secret_name"
 
-# Test schema validation
-expected_schema = StructType([
-    StructField("id", IntegerType(), True),
-    StructField("name", StringType(), True),
-    StructField("email", StringType(), True),
-    StructField("phone", StringType(), True),
-    StructField("zip", StringType(), True)
-])
 
-assert df.schema == expected_schema, "Schema does not match expected schema"
+# Key generation (using simple-crypt, replace with your key management strategy)
+#  Preferably use a secure key management system like Azure Key Vault
+encryption_key = os.urandom(32) # Generate a 32-byte key for AES-256
 
-# Test data quality - Check for NULLs
-null_counts = df.select([F.count(F.when(F.isnull(c), c)).alias(c) for c in df.columns])
-null_counts.show()
 
-# Assert if there are expected NULLs (customize as needed)
-null_name_count = null_counts.collect()[0]['name']
-assert null_name_count == 1, "Unexpected NULL count in 'name' column"
+try:
+    #  If using Azure Key Vault for key management
+    #  Retrieve the Key Vault secrets
+    #
+    #  This is a placeholder - Replace with your actual Key Vault integration
+    #  using Azure Key Vault libraries or appropriate secrets management tools
+    #
+    # credentials = dbutils.secrets.get(scope = "purgo-secret-scope", key = "purgo-vault-secret")
+    # print(credentials)
 
-# Test cases for Delta Lake MERGE, UPDATE, DELETE operations
-# Setup two tables as DataFrame to simulate operations
-source_df = spark.createDataFrame([(4, "Mary Jane", "mary.jane@example.com", "5647382910", "30303")], schema)
+    #  ... (code to securely retrieve encryption key from Azure Key Vault) ...
 
-# Simulate an operation as Delta Lake doesn't natively execute in Spark DataFrame API
-df = df.union(source_df)
+    # Encryption function
+    def encrypt_data(data, key):
+        return encrypt(key, data).decode('latin1') # Simple-crypt returns bytes, decode to string
 
-# Simulate UPDATE operation
-updated_df = df.withColumn("email", F.when(df.name == "John Doe", "new.john.doe@example.com").otherwise(df.email))
+    # Decryption function (for testing)
+    def decrypt_data(encrypted_data, key):
+        encrypted_bytes = encrypted_data.encode('latin1')  # Simple-crypt returns bytes, decode to string
+        return decrypt(key, encrypted_bytes).decode()
 
-# Check UPDATE
-assert updated_df.filter(updated_df.name == "John Doe").select("email").collect()[0][0] == "new.john.doe@example.com"
 
-# Simulate DELETE by filtering
-filtered_df = updated_df.filter(updated_df.name != "Mary Jane")
 
-# Check DELETE
-assert filtered_df.filter(filtered_df.name == "Mary Jane").count() == 0
+    spark = SparkSession.builder.appName("EncryptPII").getOrCreate()
+    # Load data from source table
+    source_table_name = "purgo_playground.customer_360_raw" # Source Table Name
+    df = spark.table(source_table_name)
 
-spark.stop()
+    # Drop the clone table if exists
+    spark.sql(f"DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone")
+    # Encrypt PII columns
+    for column in PII_COLUMNS:
+        df = df.withColumn(column, col(column).cast(StringType()))  # Cast to string if necessary
+        df = df.withColumn(column, lit(encrypt_data(df[column].getItem(0), encryption_key)) if df[column].getItem(0) is not None else lit(None)) # Use a udf here
+
+
+    # Save the encrypted data to the destination table (overwrite mode)
+    destination_table_name = "purgo_playground.customer_360_raw_clone" # Destination Table Name
+    df.write.format("delta").mode("overwrite").saveAsTable(destination_table_name)
+
+
+    # Save the encryption key as a JSON file (REPLACE WITH SECURE KEY MANAGEMENT)
+    key_file_path = "/Volumes/agilisium_playground/purgo_playground/de_dq12/encryption_key_" + datetime.now().strftime("%Y%m%d%H%M%S") + ".json"
+    # IMPORTANT: In a production environment, DO NOT store the key directly as plaintext.
+    # Use a secure key management system like Azure Key Vault.
+    key_data = {"encryption_key": encryption_key.decode('latin1')} # Store key as string in JSON
+
+    with open(key_file_path, "w") as f:
+        json.dump(key_data, f)
+
+    # Test decryption (optional, for verification)
+    decrypted_df = df
+    for column in PII_COLUMNS:
+        decrypted_df = decrypted_df.withColumn(column, lit(decrypt_data(df[column].getItem(0), encryption_key)) if df[column].getItem(0) is not None else lit(None))
+
+    decrypted_df.show()
+
+
+# Unit test example
+    test_value = data_happy_path[0][1]  # 'John Doe' from the test data
+    encrypted_value = encrypt_data(test_value, encryption_key)
+    decrypted_value = decrypt_data(encrypted_value, encryption_key)
+    assert decrypted_value == test_value, f"Decryption failed: Expected {test_value}, got {decrypted_value}"
+
+
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+
+finally:
+    spark.stop()
+
+
