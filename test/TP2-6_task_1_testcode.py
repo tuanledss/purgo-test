@@ -1,170 +1,134 @@
+# PySpark Test Code for Encrypting PII Data in Databricks
+
 from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
-from pyspark.sql.types import StructType, StructField, StringType, TimestampType, DoubleType, DecimalType, ArrayType, MapType
+from pyspark.sql.functions import col, udf, lit, current_timestamp
+from pyspark.sql.types import StringType, StructType, StructField, LongType, DateType
+import base64
+import json
+import os
+import unittest
 
-# Initialize Spark Session
-spark = SparkSession.builder.appName("Test Data Generation").getOrCreate()
+# Initialize Spark session
+spark = SparkSession.builder.appName("EncryptPIIDataTest").getOrCreate()
 
-# Define schema for test data
-schema = StructType([
-    StructField("id", StringType(), True),
+# Define encryption function
+def encrypt_data(data, key):
+    if data is not None:
+        return base64.b64encode(data.encode('utf-8')).decode('utf-8')
+    return None
+
+# Register UDF
+encrypt_udf = udf(lambda x: encrypt_data(x, "encryption_key"), StringType())
+
+# Define schema for validation
+customer_schema = StructType([
+    StructField("id", LongType(), True),
     StructField("name", StringType(), True),
-    StructField("created_at", TimestampType(), True),
-    StructField("price", DecimalType(10, 2), True),
-    StructField("quantity", DoubleType(), True),
-    StructField("tags", ArrayType(StringType()), True),
-    StructField("attributes", MapType(StringType(), StringType()), True)
+    StructField("email", StringType(), True),
+    StructField("phone", StringType(), True),
+    StructField("company", StringType(), True),
+    StructField("job_title", StringType(), True),
+    StructField("address", StringType(), True),
+    StructField("city", StringType(), True),
+    StructField("state", StringType(), True),
+    StructField("country", StringType(), True),
+    StructField("industry", StringType(), True),
+    StructField("account_manager", StringType(), True),
+    StructField("creation_date", DateType(), True),
+    StructField("last_interaction_date", DateType(), True),
+    StructField("purchase_history", StringType(), True),
+    StructField("notes", StringType(), True),
+    StructField("zip", StringType(), True)
 ])
 
-# Generate happy path test data
-happy_path_data = [
-    ("1", "Product A", "2024-03-21T00:00:00.000+0000", 10.99, 5.0, ["tag1", "tag2"], {"color": "red", "size": "large"}),
-    ("2", "Product B", "2024-03-22T00:00:00.000+0000", 9.99, 3.0, ["tag2", "tag3"], {"color": "blue", "size": "medium"}),
-    ("3", "Product C", "2024-03-23T00:00:00.000+0000", 12.99, 2.0, ["tag1", "tag3"], {"color": "green", "size": "small"}),
-    ("4", "Product D", "2024-03-24T00:00:00.000+0000", 8.99, 4.0, ["tag2", "tag4"], {"color": "yellow", "size": "large"}),
-    ("5", "Product E", "2024-03-25T00:00:00.000+0000", 11.99, 1.0, ["tag1", "tag4"], {"color": "purple", "size": "medium"}),
-]
+# Unit test class
+class TestEncryptPIIData(unittest.TestCase):
 
-# Generate edge cases test data
-edge_cases_data = [
-    ("6", "Product F", "2024-03-26T00:00:00.000+0000", 0.00, 0.0, [], {}),
-    ("7", "Product G", "2024-03-27T00:00:00.000+0000", 100.00, 10.0, ["tag1", "tag2", "tag3", "tag4", "tag5"], {"color": "red", "size": "large", "material": "wood"}),
-    ("8", "Product H", "2024-03-28T00:00:00.000+0000", -10.00, -5.0, ["tag1", "tag2"], {"color": "blue", "size": "medium"}),
-    ("9", "Product I", "2024-03-29T00:00:00.000+0000", 10.00, 5.0, ["tag1", "tag2"], {"color": "green", "size": "small"}),
-    ("10", "Product J", "2024-03-30T00:00:00.000+0000", 0.01, 0.01, ["tag1", "tag2"], {"color": "yellow", "size": "large"}),
-]
+    def setUp(self):
+        # Load the customer_360_raw table
+        self.customer_df = spark.table("purgo_playground.customer_360_raw")
 
-# Generate error cases test data
-error_cases_data = [
-    ("11", None, "2024-03-31T00:00:00.000+0000", 10.99, 5.0, ["tag1", "tag2"], {"color": "red", "size": "large"}),
-    ("12", "Product L", None, 9.99, 3.0, ["tag2", "tag3"], {"color": "blue", "size": "medium"}),
-    ("13", "Product M", "2024-04-01T00:00:00.000+0000", None, 2.0, ["tag1", "tag3"], {"color": "green", "size": "small"}),
-    ("14", "Product N", "2024-04-02T00:00:00.000+0000", 8.99, None, ["tag2", "tag4"], {"color": "yellow", "size": "large"}),
-    ("15", "Product O", "2024-04-03T00:00:00.000+0000", 11.99, 1.0, None, {"color": "purple", "size": "medium"}),
-]
+    def test_schema_validation(self):
+        # Validate schema
+        self.assertEqual(self.customer_df.schema, customer_schema)
 
-# Generate NULL handling scenarios test data
-null_handling_data = [
-    (None, "Product P", "2024-04-04T00:00:00.000+0000", 10.99, 5.0, ["tag1", "tag2"], {"color": "red", "size": "large"}),
-    ("17", None, "2024-04-05T00:00:00.000+0000", 9.99, 3.0, ["tag2", "tag3"], {"color": "blue", "size": "medium"}),
-    ("18", "Product R", None, 12.99, 2.0, ["tag1", "tag3"], {"color": "green", "size": "small"}),
-    ("19", "Product S", "2024-04-07T00:00:00.000+0000", None, 4.0, ["tag2", "tag4"], {"color": "yellow", "size": "large"}),
-    ("20", "Product T", "2024-04-08T00:00:00.000+0000", 8.99, None, ["tag1", "tag4"], {"color": "purple", "size": "medium"}),
-]
+    def test_encrypt_pii_columns(self):
+        # Encrypt PII columns
+        encrypted_df = self.customer_df.withColumn("name", encrypt_udf(col("name"))) \
+                                       .withColumn("email", encrypt_udf(col("email"))) \
+                                       .withColumn("phone", encrypt_udf(col("phone"))) \
+                                       .withColumn("zip", encrypt_udf(col("zip")))
 
-# Generate special characters and multi-byte characters test data
-special_chars_data = [
-    ("21", "Product U", "2024-04-09T00:00:00.000+0000", 10.99, 5.0, ["tag1", "tag2"], {"color": "red", "size": "large"}),
-    ("22", "Product V", "2024-04-10T00:00:00.000+0000", 9.99, 3.0, ["tag2", "tag3"], {"color": "blue", "size": "medium"}),
-    ("23", "Product W", "2024-04-11T00:00:00.000+0000", 12.99, 2.0, ["tag1", "tag3"], {"color": "green", "size": "small"}),
-    ("24", "Product X", "2024-04-12T00:00:00.000+0000", 8.99, 4.0, ["tag2", "tag4"], {"color": "yellow", "size": "large"}),
-    ("25", "Product Y", "2024-04-13T00:00:00.000+0000", 11.99, 1.0, ["tag1", "tag4"], {"color": "purple", "size": "medium"}),
-]
+        # Check that encrypted columns do not match original
+        for row in encrypted_df.collect():
+            self.assertNotEqual(row['name'], self.customer_df.filter(col("id") == row['id']).select("name").collect()[0][0])
+            self.assertNotEqual(row['email'], self.customer_df.filter(col("id") == row['id']).select("email").collect()[0][0])
+            self.assertNotEqual(row['phone'], self.customer_df.filter(col("id") == row['id']).select("phone").collect()[0][0])
+            self.assertNotEqual(row['zip'], self.customer_df.filter(col("id") == row['id']).select("zip").collect()[0][0])
 
-# Create DataFrames for each test data category
-happy_path_df = spark.createDataFrame(happy_path_data, schema)
-edge_cases_df = spark.createDataFrame(edge_cases_data, schema)
-error_cases_df = spark.createDataFrame(error_cases_data, schema)
-null_handling_df = spark.createDataFrame(null_handling_data, schema)
-special_chars_df = spark.createDataFrame(special_chars_data, schema)
+    def test_null_handling(self):
+        # Test NULL handling
+        null_df = self.customer_df.withColumn("name", lit(None))
+        encrypted_null_df = null_df.withColumn("name", encrypt_udf(col("name")))
+        self.assertTrue(encrypted_null_df.filter(col("name").isNull()).count() > 0)
 
-# Write DataFrames to Databricks tables
-happy_path_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.happy_path_test_data")
-edge_cases_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.edge_cases_test_data")
-error_cases_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.error_cases_test_data")
-null_handling_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.null_handling_test_data")
-special_chars_df.write.format("delta").mode("overwrite").saveAsTable("purgo_playground.special_chars_test_data")
+    def test_encryption_key_generation(self):
+        # Generate encryption key and save as JSON
+        encryption_key = base64.b64encode(os.urandom(32)).decode('utf-8')
+        key_data = {"encryption_key": encryption_key, "timestamp": current_timestamp().cast("string").alias("timestamp")}
+        key_json = json.dumps(key_data)
 
+        # Save the encryption key to a JSON file
+        key_file_path = f"/Volumes/agilisium_playground/purgo_playground/de_dq12/encryption_key_{current_timestamp().cast('string')}.json"
+        with open(key_file_path, 'w') as key_file:
+            key_file.write(key_json)
 
+        # Validate key file creation
+        self.assertTrue(os.path.exists(key_file_path))
 
--- Create tables for each test data category
-CREATE TABLE purgo_playground.happy_path_test_data (
-  id STRING,
-  name STRING,
-  created_at TIMESTAMP,
-  price DECIMAL(10, 2),
-  quantity DOUBLE,
-  tags ARRAY<STRING>,
-  attributes MAP<STRING, STRING>
-);
+    def tearDown(self):
+        # Cleanup operations
+        spark.sql("DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone12")
 
-CREATE TABLE purgo_playground.edge_cases_test_data (
-  id STRING,
-  name STRING,
-  created_at TIMESTAMP,
-  price DECIMAL(10, 2),
-  quantity DOUBLE,
-  tags ARRAY<STRING>,
-  attributes MAP<STRING, STRING>
-);
+# Run the tests
+if __name__ == '__main__':
+    unittest.main(argv=['first-arg-is-ignored'], exit=False)
 
-CREATE TABLE purgo_playground.error_cases_test_data (
-  id STRING,
-  name STRING,
-  created_at TIMESTAMP,
-  price DECIMAL(10, 2),
-  quantity DOUBLE,
-  tags ARRAY<STRING>,
-  attributes MAP<STRING, STRING>
-);
+# Stop Spark session
+spark.stop()
 
-CREATE TABLE purgo_playground.null_handling_test_data (
-  id STRING,
-  name STRING,
-  created_at TIMESTAMP,
-  price DECIMAL(10, 2),
-  quantity DOUBLE,
-  tags ARRAY<STRING>,
-  attributes MAP<STRING, STRING>
-);
+-- SQL Test Code for Databricks SQL Operations
 
-CREATE TABLE purgo_playground.special_chars_test_data (
-  id STRING,
-  name STRING,
-  created_at TIMESTAMP,
-  price DECIMAL(10, 2),
-  quantity DOUBLE,
-  tags ARRAY<STRING>,
-  attributes MAP<STRING, STRING>
-);
+/* Test Delta Lake Operations */
+-- Validate that the Delta table exists and has the correct schema
+CREATE OR REPLACE TABLE purgo_playground.customer_360_raw_clone12 AS
+SELECT * FROM purgo_playground.customer_360_raw12;
 
--- Insert Data into Tables with Correct Syntax for Arrays and Maps
-INSERT INTO purgo_playground.happy_path_test_data
-VALUES
-  ('1', 'Product A', '2024-03-21T00:00:00.000+0000', 10.99, 5.0, ARRAY('tag1', 'tag2'), MAP('color', 'red', 'size', 'large')),
-  ('2', 'Product B', '2024-03-22T00:00:00.000+0000', 9.99, 3.0, ARRAY('tag2', 'tag3'), MAP('color', 'blue', 'size', 'medium')),
-  ('3', 'Product C', '2024-03-23T00:00:00.000+0000', 12.99, 2.0, ARRAY('tag1', 'tag3'), MAP('color', 'green', 'size', 'small')),
-  ('4', 'Product D', '2024-03-24T00:00:00.000+0000', 8.99, 4.0, ARRAY('tag2', 'tag4'), MAP('color', 'yellow', 'size', 'large')),
-  ('5', 'Product E', '2024-03-25T00:00:00.000+0000', 11.99, 1.0, ARRAY('tag1', 'tag4'), MAP('color', 'purple', 'size', 'medium'));
+-- Check schema
+DESCRIBE TABLE purgo_playground.customer_360_raw_clone12;
 
-INSERT INTO purgo_playground.edge_cases_test_data
-VALUES
-  ('6', 'Product F', '2024-03-26T00:00:00.000+0000', 0.00, 0.0, ARRAY(), MAP()),
-  ('7', 'Product G', '2024-03-27T00:00:00.000+0000', 100.00, 10.0, ARRAY('tag1', 'tag2', 'tag3', 'tag4', 'tag5'), MAP('color', 'red', 'size', 'large', 'material', 'wood')),
-  ('8', 'Product H', '2024-03-28T00:00:00.000+0000', -10.00, -5.0, ARRAY('tag1', 'tag2'), MAP('color', 'blue', 'size', 'medium')),
-  ('9', 'Product I', '2024-03-29T00:00:00.000+0000', 10.00, 5.0, ARRAY('tag1', 'tag2'), MAP('color', 'green', 'size', 'small')),
-  ('10', 'Product J', '2024-03-30T00:00:00.000+0000', 0.01, 0.01, ARRAY('tag1', 'tag2'), MAP('color', 'yellow', 'size', 'large'));
+/* Test MERGE, UPDATE, DELETE operations */
+-- Test MERGE operation
+MERGE INTO purgo_playground.customer_360_raw_clone12 AS target
+USING (SELECT * FROM purgo_playground.customer_360_raw WHERE id = 1) AS source
+ON target.id = source.id
+WHEN MATCHED THEN
+  UPDATE SET target.name = source.name;
 
-INSERT INTO purgo_playground.error_cases_test_data
-VALUES
-  ('11', NULL, '2024-03-31T00:00:00.000+0000', 10.99, 5.0, ARRAY('tag1', 'tag2'), MAP('color', 'red', 'size', 'large')),
-  ('12', 'Product L', NULL, 9.99, 3.0, ARRAY('tag2', 'tag3'), MAP('color', 'blue', 'size', 'medium')),
-  ('13', 'Product M', '2024-04-01T00:00:00.000+0000', NULL, 2.0, ARRAY('tag1', 'tag3'), MAP('color', 'green', 'size', 'small')),
-  ('14', 'Product N', '2024-04-02T00:00:00.000+0000', 8.99, NULL, ARRAY('tag2', 'tag4'), MAP('color', 'yellow', 'size', 'large')),
-  ('15', 'Product O', '2024-04-03T00:00:00.000+0000', 11.99, 1.0, NULL, MAP('color', 'purple', 'size', 'medium'));
+/* Validate UPDATE */
+SELECT * FROM purgo_playground.customer_360_raw_clone12 WHERE id = 1;
 
-INSERT INTO purgo_playground.null_handling_test_data
-VALUES
-  (NULL, 'Product P', '2024-04-04T00:00:00.000+0000', 10.99, 5.0, ARRAY('tag1', 'tag2'), MAP('color', 'red', 'size', 'large')),
-  ('17', NULL, '2024-04-05T00:00:00.000+0000', 9.99, 3.0, ARRAY('tag2', 'tag3'), MAP('color', 'blue', 'size', 'medium')),
-  ('18', 'Product R', NULL, 12.99, 2.0, ARRAY('tag1', 'tag3'), MAP('color', 'green', 'size', 'small')),
-  ('19', 'Product S', '2024-04-07T00:00:00.000+0000', NULL, 4.0, ARRAY('tag2', 'tag4'), MAP('color', 'yellow', 'size', 'large')),
-  ('20', 'Product T', '2024-04-08T00:00:00.000+0000', 8.99, NULL, ARRAY('tag1', 'tag4'), MAP('color', 'purple', 'size', 'medium'));
+/* Test DELETE operation */
+DELETE FROM purgo_playground.customer_360_raw_clone12 WHERE id = 1;
 
-INSERT INTO purgo_playground.special_chars_test_data
-VALUES
-  ('21', 'Product U', '2024-04-09T00:00:00.000+0000', 10.99, 5.0, ARRAY('tag1', 'tag2'), MAP('color', 'red', 'size', 'large')),
-  ('22', 'Product V', '2024-04-10T00:00:00.000+0000', 9.99, 3.0, ARRAY('tag2', 'tag3'), MAP('color', 'blue', 'size', 'medium')),
-  ('23', 'Product W', '2024-04-11T00:00:00.000+0000', 12.99, 2.0, ARRAY('tag1', 'tag3'), MAP('color', 'green', 'size', 'small')),
-  ('24', 'Product X', '2024-04-12T00:00:00.000+0000', 8.99, 4.0, ARRAY('tag2', 'tag4'), MAP('color', 'yellow', 'size', 'large')),
-  ('25', 'Product Y', '2024-04-13T00:00:00.000+0000', 11.99, 1.0, ARRAY('tag1', 'tag4'), MAP('color', 'purple', 'size', 'medium'));
+/* Validate DELETE */
+SELECT * FROM purgo_playground.customer_360_raw_clone12 WHERE id = 1;
+
+/* Test window functions and analytics features */
+-- Test window function
+SELECT id, name, ROW_NUMBER() OVER (PARTITION BY country ORDER BY creation_date DESC) AS row_num
+FROM purgo_playground.customer_360_raw_clone12;
+
+/* Cleanup operations */
+-- Drop the test table
+DROP TABLE IF EXISTS purgo_playground.customer_360_raw_clone12;
