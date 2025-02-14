@@ -1,0 +1,49 @@
+Feature: Encrypt PII Data in Customer 360 Table
+
+  Background:
+    Given the table "purgo_playground.customer_360_raw_clone12" does not exist
+    When the table "purgo_playground.customer_360_raw_clone12" is created as a replica of "purgo_playground.customer_360_raw12"
+    Then the table "purgo_playground.customer_360_raw_clone12" is ready for encryption
+
+  Scenario: Encrypt PII columns in the customer_360_raw_clone12 table
+    Given the PII columns "name", "email", "phone", and "zip" in the table "purgo_playground.customer_360_raw_clone12"
+    When the encryption method "AES-256" is applied to these columns
+    Then the encrypted data is stored back in the table "purgo_playground.customer_360_raw_clone12"
+    And the encryption key is saved as a JSON file named "encryption_key_<current_datetime>.json" in the location "/Volumes/agilisium_playground/purgo_playground/de_dq12"
+
+  Scenario Outline: Validate encryption process
+    Given the column "<column_name>" in the table "purgo_playground.customer_360_raw_clone12" is encrypted
+    When the data is retrieved from the column "<column_name>"
+    Then the data should not match the original format "<original_format>"
+    And the data should be in encrypted format
+
+    Examples:
+      | column_name | original_format |
+      | name        | string          |
+      | email       | string          |
+      | phone       | string          |
+      | zip         | string          |
+
+  Scenario: Handle encryption errors
+    Given the encryption process is initiated
+    When an error occurs during encryption
+    Then an error message "Encryption failed for column <column_name>" is logged
+    And the process is halted
+
+  Scenario: Validate encryption key management
+    Given the encryption key is generated
+    When the key is saved
+    Then the key file "encryption_key_<current_datetime>.json" should be accessible only to authorized users
+    And the key should be rotated every 90 days
+
+  Scenario: Performance benchmark for encryption
+    Given the encryption process is running
+    When the process is completed
+    Then the total time taken should not exceed "5 minutes" for "100,000" records
+    And the CPU usage should not exceed "80%"
+
+  Scenario: Validate data integrity post-encryption
+    Given the data in "purgo_playground.customer_360_raw_clone12" is encrypted
+    When the data is decrypted
+    Then the decrypted data should match the original data in "purgo_playground.customer_360_raw12"
+
