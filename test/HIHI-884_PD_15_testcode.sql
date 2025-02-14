@@ -1,84 +1,61 @@
--- SQL tests for data quality checks in Databricks environment
-
 /* 
-   Setup and configuration 
-   This section handles any necessary setup before running tests 
+  Data Quality Check SQL Logic for d_product Table 
+  This SQL script performs mandatory data quality checks on the d_product table,
+  ensuring critical fields are not null and date formats are validated.
+  Applicable to Databricks SQL environment.
+  Place any environment-specific configurations above this comment block.
 */
 
--- Use correct catalog and schema
--- Ensure the catalog name is correctly referenced as per your environment setup.
-USE CATALOG purgo_playground;
-
 /* 
-   Data Quality Check for 'item_nbr' column 
-   Verify that 'item_nbr' is not null
+  Checking records with NULL 'item_nbr'
+  - Retrieve the count of records where 'item_nbr' is NULL
+  - Display 5 sample records with NULL 'item_nbr'
 */
+-- Count of records with NULL 'item_nbr'
+SELECT COUNT(*) AS null_item_nbr_count
+FROM purgo_playground.d_product
+WHERE item_nbr IS NULL;
 
--- Get count of records with null 'item_nbr'
-SELECT 
-  COUNT(*) AS null_item_nbr_count 
-FROM 
-  d_product 
-WHERE 
-  item_nbr IS NULL;
-
--- Display 5 sample records where 'item_nbr' is null
-SELECT 
-  * 
-FROM 
-  d_product 
-WHERE 
-  item_nbr IS NULL 
+-- Sample records with NULL 'item_nbr'
+SELECT *
+FROM purgo_playground.d_product
+WHERE item_nbr IS NULL
 LIMIT 5;
 
-/* 
-   Data Quality Check for 'sellable_qty' column 
-   Verify that 'sellable_qty' is not null
+/*
+  Checking records with NULL 'sellable_qty'
+  - Retrieve the count of records where 'sellable_qty' is NULL
+  - Display 5 sample records with NULL 'sellable_qty'
 */
+-- Count of records with NULL 'sellable_qty'
+SELECT COUNT(*) AS null_sellable_qty_count
+FROM purgo_playground.d_product
+WHERE sellable_qty IS NULL;
 
--- Get count of records with null 'sellable_qty'
-SELECT 
-  COUNT(*) AS null_sellable_qty_count 
-FROM 
-  d_product 
-WHERE 
-  sellable_qty IS NULL;
-
--- Display 5 sample records where 'sellable_qty' is null
-SELECT 
-  * 
-FROM 
-  d_product 
-WHERE 
-  sellable_qty IS NULL 
+-- Sample records with NULL 'sellable_qty'
+SELECT *
+FROM purgo_playground.d_product
+WHERE sellable_qty IS NULL
 LIMIT 5;
 
-/* 
-   Data Quality Check for 'prod_exp_dt' column 
-   Validate that 'prod_exp_dt' is in the 'yyyyMMdd' format
+/*
+  Validating 'prod_exp_dt' format
+  - Retrieve the count of records where 'prod_exp_dt' is not in 'yyyyMMdd' format
+  - Display 5 sample records with incorrect 'prod_exp_dt' format
 */
+-- Count of records with incorrect 'prod_exp_dt' format
+SELECT COUNT(*) AS incorrect_prod_exp_dt_format_count
+FROM purgo_playground.d_product
+WHERE NOT prod_exp_dt RLIKE '^[0-9]{8}$';
 
--- Get count of records with incorrect 'prod_exp_dt' format
-SELECT 
-  COUNT(*) AS invalid_prod_exp_dt_count 
-FROM 
-  d_product 
-WHERE 
-  prod_exp_dt NOT REGEXP '^[0-9]{8}$';
-
--- Display 5 sample records where 'prod_exp_dt' is not in 'yyyyMMdd' format
-SELECT 
-  * 
-FROM 
-  d_product 
-WHERE 
-  prod_exp_dt NOT REGEXP '^[0-9]{8}$' 
+-- Sample records with incorrect 'prod_exp_dt' format
+SELECT *
+FROM purgo_playground.d_product
+WHERE NOT prod_exp_dt RLIKE '^[0-9]{8}$'
 LIMIT 5;
 
-/* 
-   Cleanup operations 
-   Ensure no temporary data or tables persist after testing
+/*
+  Cleanup operations
+  Include this section if any temporary tables/views or resources were used
+  Ensure proper disposal to maintain environment integrity
 */
-
--- Example of cleanup operation (uncomment if temporary tables/views were created)
--- DROP TABLE IF EXISTS temp_table_name;
