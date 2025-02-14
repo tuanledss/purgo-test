@@ -1,58 +1,52 @@
-Feature: Unity Catalog Schema Analysis
+Feature: Encrypt PII Data in Customer 360 Raw Table
 
   Background:
-    Given the Unity Catalog Schema "purgo_playground" is available
-    And the schema details are provided, including table structures, relationships, and data types
-    And the attachments and context are available for analysis
+    Given the table "purgo_playground.customer_360_raw_clone12" does not exist
+    When the table "purgo_playground.customer_360_raw_clone12" is created as a replica of "purgo_playground.customer_360_raw12"
 
-  Scenario: Successful Analysis with Complete Information
-    Given the schema details for "purgo_playground" are provided
-    And the attachments and context are available
-    When the analysis is performed with complete information
-    Then the analysis should be successful
-    And the results should be accurate and comprehensive
+  Scenario: Encrypt PII columns in the customer_360_raw_clone12 table
+    Given the PII columns "name", "email", "phone", and "zip" in the table "purgo_playground.customer_360_raw_clone12"
+    When the PySpark script is executed to encrypt the PII columns
+    Then the encrypted data is saved back to the table "purgo_playground.customer_360_raw_clone12"
+    And the encryption key is saved as a JSON file named "encryption_key_<current_datetime>" in the location "/Volumes/agilisium_playground/purgo_playground/de_dq12"
 
-  Scenario Outline: Analysis with Missing Information
-    Given the schema details for "purgo_playground" are <schema_details>
-    And the attachments and context are <attachments_context>
-    When the analysis is performed with missing information
-    Then the analysis should fail with an error message <error_message>
+  Scenario Outline: Validate encryption process with different data inputs
+    Given the PII data "<name>", "<email>", "<phone>", "<zip>"
+    When the PySpark script encrypts the data
+    Then the encrypted data should not match the original data
+    And the encryption key should be securely stored
 
     Examples:
-      | schema_details | attachments_context | error_message |
-      | missing        | available          | "Schema details are required for analysis" |
-      | available      | missing            | "Attachments and context are required for analysis" |
-      | missing        | missing            | "Both schema details and attachments/context are required for analysis" |
+      | name       | email                | phone      | zip   |
+      | John Doe   | john.doe@example.com | 1234567890 | 12345 |
+      | Jane Smith | jane.smith@example.com | 0987654321 | 54321 |
 
-  Scenario: Analysis with Invalid Schema Details
-    Given the schema details for "purgo_playground" are invalid
-    When the analysis is performed with invalid schema details
-    Then the analysis should fail with an error message "Invalid schema details provided"
+  Scenario: Handle missing PII data
+    Given the PII column "email" is missing in the input data
+    When the PySpark script is executed
+    Then an error message "PII data missing for column: email" is logged
+    And the process is halted
 
-  Scenario: Analysis with Invalid Attachments/Context
-    Given the attachments and context are invalid
-    When the analysis is performed with invalid attachments/context
-    Then the analysis should fail with an error message "Invalid attachments/context provided"
+  Scenario: Handle invalid data format
+    Given the PII column "phone" has an invalid format "abc123"
+    When the PySpark script is executed
+    Then an error message "Invalid data format for column: phone" is logged
+    And the process is halted
 
-  Scenario Outline: Validation of Schema Details
-    Given the schema details for "purgo_playground" are provided
-    When the schema details are validated
-    Then the validation should <validation_result> with an error message <error_message>
+  Scenario: Ensure encryption key is unique and secure
+    Given the encryption key is generated
+    When the key is saved
+    Then the key should be unique for each execution
+    And the key should be stored securely with restricted access
 
-    Examples:
-      | validation_result | error_message |
-      | pass              | ""            |
-      | fail              | "Invalid schema details: <specific_error>" |
+  Scenario: Validate data integrity post-encryption
+    Given the original data in the table "purgo_playground.customer_360_raw_clone12"
+    When the data is encrypted
+    Then the non-PII columns should remain unchanged
+    And the PII columns should be encrypted
 
-  Scenario Outline: Validation of Attachments/Context
-    Given the attachments and context are provided
-    When the attachments/context are validated
-    Then the validation should <validation_result> with an error message <error_message>
-
-    Examples:
-      | validation_result | error_message |
-      | pass              | ""            |
-      | fail              | "Invalid attachments/context: <specific_error>" |
-
-
-Note: The specific error messages and validation rules should be updated based on the actual requirements and schema details.
+  Scenario: Log encryption process details
+    Given the PySpark script is executed
+    When the encryption process starts
+    Then log the start time, end time, and status of the encryption process
+    And log any errors encountered during the process
