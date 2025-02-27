@@ -1,0 +1,44 @@
+Feature: Calculate Days on Hand (DOH) usage for inventory and product plants
+
+  Background:
+    Given the inventory data is available from purgo_playground.f_inv_movmnt
+    And the sales data is available from purgo_playground.f_sales
+
+  Scenario Outline: Calculate DOH for a product
+    Given the inventory data for <Product> from <Start Date> to <End Date>
+      And the sales data for <Product> from <Start Date> to <End Date>
+    When I calculate the average inventory level for the product
+    And I calculate the average daily sales for the product
+    Then the Days on Hand is calculated using the formula DOH = (Average Inventory / Average Daily Sales) * 365
+    And I store <Average Inventory>, <Average Daily Sales>, <DOH> in purgo_playground.doh_metrics
+
+    Examples:
+      | Product | Start Date | End Date   | Average Inventory | Average Daily Sales | DOH |
+      | 001     | 2023-01-01 | 2023-03-31 | 1000.0            | 10.0                | 365 |
+      | 002     | 2023-01-01 | 2023-03-31 | 500.0             | 5.0                 | 365 |
+
+  Scenario: Calculate KPI metrics for DOH
+    Given DOH values are available for all products
+    When I calculate the average DOH for all products
+    And I calculate the standard deviation of DOH for all products
+    Then I store <Avg DOH>, <Std Dev DOH> in purgo_playground.doh_kpis
+
+  Scenario: Handle inactive inventory records
+    Given there are inactive inventory records in the data with flag_active set to "N"
+    When I filter out inactive records
+    Then only active inventory records with flag_active set to "Y" are used in calculations
+
+  Scenario: Handle canceled sales transactions
+    Given there are canceled sales transactions with flag_cancel set to "Y"
+    When I exclude canceled transactions from the sales data
+    Then only valid sales transactions are used in calculations
+
+  Scenario: Error on missing inventory data
+    Given inventory data is missing for a product
+    When the system attempts to calculate DOH
+    Then an error message "Inventory data is missing for product <Product>" is logged
+
+  Scenario: Error on missing sales data
+    Given sales data is missing for a product
+    When the system attempts to calculate DOH
+    Then an error message "Sales data is missing for product <Product>" is logged
